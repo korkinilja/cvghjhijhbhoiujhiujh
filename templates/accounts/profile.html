@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<h1>Профиль</h1>
+
+<p>Вы вошли как <strong>{{ user.username }}</strong>.</p>
+<p>Ваша роль:
+    {% if user.account_type == 'owner' %}
+        Владелец счёта
+    {% else %}
+        Участник счёта
+    {% endif %}
+</p>
+{% endblock %}

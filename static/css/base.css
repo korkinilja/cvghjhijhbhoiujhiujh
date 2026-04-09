@@ -1,0 +1,180 @@
+/* Общие стили */
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #1f2b24; /* приглушённый тёмно-зелёный/серый */
+}
+
+a {
+    color: #2f7d46; /* спокойный зелёный */
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.top-bar {
+    margin: 0;
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+/* ==========================
+   Страница авторизации/регистрации
+   ========================== */
+
+body.auth-page {
+    min-height: 100vh;
+    background: #0f1713 url("../img/money_pattern.jpg") no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    
+}
+
+
+body.auth-page .top-bar {
+    color: #ffffff;
+    background: transparent;
+    font-weight: 600;
+    text-shadow: 0 0 6px #000;
+}
+
+body.auth-page .top-bar a {
+    color: inherit;
+}
+
+/* Центровщик карточки */
+.auth-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Карточка */
+
+.auth-card {
+    background-color: rgba(12, 28, 20, 0.92); /* тёмный зелёно-синий, полупрозрачный */
+    color: #e9f5ee;                           /* светлый зеленоватый для текста */
+    border-radius: 18px;
+    padding: 32px 40px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+}
+
+.auth-title {
+    margin-top: 0;
+    margin-bottom: 24px;
+    font-size: 26px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Формы */
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.field-label,
+.form-group > label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Поля ввода (кроме radio/checkbox) */
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="email"],
+.form-group input[type="number"],
+.form-group input[type="search"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #355645;
+    background-color: #0f2017;
+    color: #e9f5ee;
+}
+
+/* Радио-кнопки */
+.form-group input[type="radio"] {
+    width: auto;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #48a267;
+    box-shadow: 0 0 0 1px rgba(72, 162, 103, 0.5);
+}
+
+/* Радио-кнопки для выбора роли */
+
+.form-group ul {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+}
+
+.form-group li {
+    margin-bottom: 4px;
+}
+
+/* Ошибки */
+
+.error-text {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #ffb6b6; /* мягкий красноватый */
+}
+
+/* Кнопка */
+
+.form-actions {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.btn-primary {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 999px;
+    border: none;
+    background-color: #2f7d46;   /* основной зелёный */
+    color: #f5fbf7;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #296c3c;
+}
+
+/* Кнопка с информацией (details/summary) */
+
+.info-details {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #c7e0d3;
+}
+
+.info-details summary {
+    cursor: pointer;
+    color: #a5d7ba;
+}
+
+.info-details p {
+    margin: 4px 0;
+}

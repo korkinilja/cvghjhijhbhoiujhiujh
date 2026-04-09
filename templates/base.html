@@ -1,0 +1,24 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Учёт бюджета{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    {% if user.is_authenticated %}
+        <p class="top-bar">
+            Вы вошли как {{ user.username }} |
+            <a href="{% url 'accounts:logout' %}">Выйти</a>
+        </p>
+    {% else %}
+        <p class="top-bar">
+            <a href="{% url 'accounts:login' %}">Вход</a> |
+            <a href="{% url 'accounts:register' %}">Регистрация</a>
+        </p>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</body>
+</html>
