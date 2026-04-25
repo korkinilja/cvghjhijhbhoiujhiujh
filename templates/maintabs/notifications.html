@@ -1,0 +1,108 @@
+{% extends "maintabs/base_maintabs.html" %}
+{% load static %}
+
+{% block title %}Уведомления{% endblock %}
+
+{% block page_content %}
+<div class="main-card">
+    <div class="main-card-header">
+        <h1>Уведомления</h1>
+
+        {% if has_notifications or has_join_history %}
+            <form method="post" action="{% url 'maintabs:clear_notifications' %}">
+            {% csrf_token %}
+                <button type="submit" class="btn-secondary">Очистить все</button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+        <ul class="django-messages">
+            {% for message in messages %}
+                <li class="message-{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {# Блок с заявками на присоединение #}
+    {% if request.user.account_type == 'owner' %}
+        {% if join_requests %}
+            <div class="notif-block">
+                <h2 style="margin-top: 0; font-size: 18px;">Запросы на присоединение к вашему счёту</h2>
+
+                <ul class="join-requests-list">
+                    {% for req in join_requests %}
+                        <li class="join-request-item">
+                            <div class="join-request-text">
+                                <strong>{{ req.from_user.username }}</strong>
+                                {% if req.status == 'pending' %}
+                                    хочет присоединиться к вашему счёту.
+                                {% elif req.status == 'approved' %}
+                                    присоединился к вашему счёту.
+                                {% elif req.status == 'rejected' %}
+                                    Вы отказали {{ req.from_user.username }} в присоединении к счёту.
+                                {% elif req.status == 'expired' %}
+                                    отправлял вам запрос на присоединение.
+                                {% endif %}
+                            </div>
+
+                            <div class="join-request-actions">
+                                {% if req.status == 'pending' %}
+                                    <form method="post"
+                                          action="{% url 'maintabs:handle_join_request' req.pk 'approve' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-primary">Да</button>
+                                    </form>
+                                    <form method="post"
+                                          action="{% url 'maintabs:handle_join_request' req.pk 'reject' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-secondary">Нет</button>
+                                    </form>
+                                {% else %}
+                                    {# НЕ-pending: можно скрыть уведомление корзинкой #}
+                                    <form method="post"
+                                          action="{% url 'maintabs:dismiss_join_request' req.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="card-delete-btn"
+                                                title="Удалить уведомление">
+                                            <img src="{% static 'img/bin-icon.svg' %}" alt="Удалить">
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <p>Запросов на присоединение нет.</p>
+        {% endif %}
+    {% endif %}
+
+    {# Блок с уведомлениями о счетах и целях #}
+        {% if notifications_list %}
+        <div class="notif-block">
+            <h2 style="margin-top: 0; font-size: 18px;">Уведомления о счетах и целях</h2>
+
+            <ul class="notifications-list">
+                {% for n in notifications_list %}
+                    <li class="notification-item">
+                        <span class="notification-text">{{ n.message }}</span>
+                        <form method="post"
+                              action="{% url 'maintabs:delete_notification' n.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="card-delete-btn" title="Удалить уведомление">
+                                <img src="{% static 'img/bin-icon.svg' %}" alt="Удалить">
+                            </button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if not has_notifications and not has_join_any %}
+        <p>Уведомлений пока нет.</p>
+    {% endif %}
+</div>
+{% endblock %}

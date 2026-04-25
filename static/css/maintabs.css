@@ -1,0 +1,653 @@
+body.main-page {
+    height: 100vh;
+    margin: 0;
+    background: #0f1713 url("../img/money_pattern.jpg") no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* страница в целом не скроллится */
+}
+
+/* На основных страницах убираем верхнюю полоску из base.html */
+body.main-page .top-bar {
+    display: none;
+}
+
+/* Основной layout: левая колонка + правая часть */
+
+.app-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+    column-gap: 18px;
+    row-gap: 0;
+    padding: 16px;
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 0;
+}
+/* Левая панель */
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    background-color: rgba(12, 28, 20, 0.95);
+    color: #e9f5ee;
+    padding: 16px 14px;
+    box-sizing: border-box;
+    border-right: 1px solid #101515;
+    width: 330px;
+    flex-shrink: 0;
+    min-height: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #203227;
+    padding-bottom: 8px;
+}
+
+.sidebar-logo-main {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.sidebar-logo-sub {
+    font-size: 32px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* Переключатель "Счета / Цели" – пока просто декоративный */
+
+.sidebar-switcher {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.sidebar-tab {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 999px;
+    border: 1px solid #355645;
+    background-color: #0f2017;
+    color: #c7e0d3;
+    font-size: 13px;
+    font-weight: 600;               /* жирнее текст */
+    cursor: pointer;
+    text-align: center;             /* центрируем текст */
+    display: inline-flex;           /* чтобы и вертикально по центру */
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;          /* на всякий случай для <a> */
+}
+
+.sidebar-tab--active {
+    background-color: #2f7d46;
+    border-color: #2f7d46;
+    color: #f5fbf7;
+}
+
+.sidebar-panel {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.sidebar-card {
+    background-color: rgba(9, 22, 16, 0.98);
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 1px solid #24362a;
+}
+
+.sidebar-title {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sidebar,
+.main-area {
+    min-height: 0;
+}
+
+.account-card-header,
+.goal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.account-card-left,
+.goal-card-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.account-card-right,
+.goal-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.account-card-name,
+.goal-card-name {
+    font-weight: 600;
+}
+
+.account-card-type {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.account-card-owner-username,
+.goal-card-owner-username {
+    font-size: 12px;
+    color: #a0b8aa;
+}
+
+.account-card-balance,
+.goal-card-amounts {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Для удаления */
+
+/* Карточки счетов и целей — нужно позиционирование для кнопки удаления */
+.account-card,
+.goal-card {
+    position: relative;
+}
+
+/* Форма с кнопкой удаления — в правом нижнем углу карточки */
+.account-card-delete-form {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    margin: 0;
+}
+
+/* Форма с кнопкой удаления в правом нижнем углу карточки */
+.card-delete-form {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    margin: 0;
+}
+
+/* Маленькая круглая кнопка с иконкой */
+.card-delete-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #7c3737;
+    background-color: rgba(9, 22, 16, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+}
+
+.card-delete-btn:hover {
+    background-color: #7c3737;
+}
+
+/* Иконка внутри кнопки */
+.card-delete-btn img {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+/* Иконки рядом с названием */
+
+.account-card-icon-img {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+/* Правая часть */
+
+.main-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Вкладки сверху */
+
+.main-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(12, 28, 20, 0.96);
+    border-radius: 18px;
+    padding: 6px 10px;
+    box-sizing: border-box;
+}
+
+.main-tab {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    color: #c7e0d3;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.main-tab:hover {
+    border-color: #2f7d46;
+}
+
+.main-tab--active {
+    background-color: #2f7d46;
+    color: #f5fbf7;
+    border-color: #2f7d46;
+}
+
+.main-tab--logout {
+    border-color: #7c3737;
+    color: #f2c4c4;
+}
+
+.main-tab--logout:hover {
+    background-color: #7c3737;
+}
+
+.main-tabs-spacer {
+    flex: 1;
+}
+
+.main-user {
+    font-size: 14px;
+    color: #e9f5ee;
+    margin-right: 8px;
+}
+
+/* Основной контент: "карточка" как на регистрации */
+
+.main-content {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+}
+
+.main-card {
+    background-color: rgba(12, 28, 20, 0.96);
+    color: #e9f5ee;
+    border-radius: 18px;
+    padding: 20px 24px;
+    box-sizing: border-box;
+}
+
+.main-card h1 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.join-requests-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+}
+
+.join-request-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #24362a;
+}
+
+.join-request-text {
+    flex: 1;
+}
+
+.join-request-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.join-request-actions form {
+    margin: 0;
+}
+
+/* Вспомогательные стили для сообщений messages */
+
+.django-messages {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.django-messages li {
+    margin-bottom: 4px;
+}
+
+.message-success {
+    color: #b6ffb6;
+}
+
+.message-error,
+.message-warning {
+    color: #ffb6b6;
+}
+
+.message-info {
+    color: #c7e0d3;
+}
+
+.error-text {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #ffb6b6;
+}
+/* Кнопка "Нет" */
+
+.btn-secondary {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #7c3737;
+    background-color: transparent;
+    color: #f2c4c4;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background-color: #7c3737;
+}
+
+.main-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.notif-block {
+    border: 2px solid #ffffff;
+    border-radius: 18px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+
+/* Модальные окна добавления счёта/цели */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+}
+
+.modal:target {
+    display: flex;
+}
+
+.modal.modal-open {
+    display: flex;
+}
+
+.modal-card {
+    background-color: rgba(12, 28, 20, 0.98);
+    color: #e9f5ee;
+    border-radius: 18px;
+    padding: 24px 28px;
+    max-width: 420px;
+    width: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+    position: relative;
+}
+
+.modal-card h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.modal-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    text-decoration: none;
+    font-size: 22px;
+    color: #e9f5ee;
+    cursor: pointer;
+}
+
+.sidebar-add-btn {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+    text-align: center;
+    margin-top: 6px;
+}
+
+.notifications-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #24362a;
+}
+
+.notification-item form {
+    margin: 0;
+}
+
+.add-operation-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #2f7d46;
+    color: #2f7d46;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.main-card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.add-category-link {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #c7e0d3;
+    text-decoration: none;
+}
+
+.add-category-link:hover {
+    text-decoration: underline;
+}
+
+.add-operation-btn:hover {
+    background-color: #2f7d46;
+    color: #f5fbf7;
+}
+
+.operations-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+}
+
+.operation-item {
+    position: relative;
+    padding: 8px 40px 8px 8px;
+    border-bottom: 1px solid #24362a;
+}
+
+.operation-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.operation-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.operation-row-small {
+    font-size: 13px;
+    color: #c7e0d3;
+}
+
+.operation-amount {
+    font-weight: 700;
+}
+
+.op-amount-income {
+    color: #48a267; /* доход */
+}
+
+.op-amount-expense {
+    color: #ff8686; /* расход */
+}
+
+.operation-container {
+    font-weight: 500;
+}
+
+.operation-datetime {
+    margin-left: auto;
+    font-size: 13px;
+    color: #a0b8aa;
+}
+
+.operation-user {
+    font-weight: 500;
+}
+
+.operation-category {
+    font-style: italic;
+}
+
+.operation-goal {
+    font-weight: 500;
+}
+
+.operation-importance {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+}
+
+.op-importance-necessary {
+    border: 1px solid #7aa4ff;
+    color: #7aa4ff;
+}
+
+.op-importance-free {
+    border: 1px solid #f2c4c4;
+    color: #f2c4c4;
+}
+
+.operation-comment {
+    margin-top: 2px;
+    font-size: 13px;
+    color: #e9f5ee;
+}
+
+/* Кнопка редактирования (будем использовать в следующем шаге) */
+
+.operation-edit-form {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    margin: 0;
+}
+
+.operation-edit-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #7aa4ff;
+    background-color: rgba(9, 22, 16, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+}
+
+.operation-edit-btn:hover {
+    background-color: #7aa4ff;
+}
+
+.operation-edit-btn img {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.btn-danger {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 999px;
+    border: none;
+    background-color: #7c3737;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.btn-danger:hover {
+    background-color: #5e2828;
+}
+
+.modal-card .form-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}

@@ -1,7 +1,12 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Вход{% endblock %}
 {% block body_class %}auth-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="auth-wrapper">
@@ -13,7 +18,7 @@
             {{ form.non_field_errors }}
 
             <div class="form-group">
-                <label for="{{ form.username.id_for_label }}">Логин</label>
+                <label for="{{ form.username.id_for_label }}">Логин:</label><br>
                 {{ form.username }}
                 {% if form.username.errors %}
                     <div class="error-text">
@@ -23,7 +28,7 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.password.id_for_label }}">Пароль</label>
+                <label for="{{ form.password.id_for_label }}">Пароль:</label><br>
                 {{ form.password }}
                 {% if form.password.errors %}
                     <div class="error-text">

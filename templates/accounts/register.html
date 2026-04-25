@@ -1,7 +1,12 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Регистрация{% endblock %}
 {% block body_class %}auth-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="auth-wrapper">
@@ -13,7 +18,7 @@
             {{ form.non_field_errors }}
 
             <div class="form-group">
-                <label for="{{ form.username.id_for_label }}">Логин</label>
+                <label for="{{ form.username.id_for_label }}">Логин:</label><br>
                 {{ form.username }}
                 {% if form.username.errors %}
                     <div class="error-text">
@@ -23,13 +28,13 @@
             </div>
 
             <div class="form-group">
-                <span class="field-label">{{ form.account_type.label }}:</span>
+                <p>{{ form.account_type.label }}:</p>
                 {{ form.account_type }}
 
                 <details class="info-details">
                     <summary>Что это значит?</summary>
-                    <p><strong>Владелец счёта</strong> создаёт свой счёт и управляет им, может приглашать других.</p>
-                    <p><strong>Участник счёта</strong> не создаёт свой счёт, присоединяется к счёту владельца по заявке.</p>
+                    <p><strong>Владелец счёта</strong> — создаёт свой счёт и управляет им, может приглашать других.</p>
+                    <p><strong>Участник счёта</strong> — не создаёт свой счёт, а присоединяется к счёту владельца по заявке.</p>
                 </details>
 
                 {% if form.account_type.errors %}
@@ -40,7 +45,7 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.password1.id_for_label }}">Пароль</label>
+                <label for="{{ form.password1.id_for_label }}">Пароль:</label><br>
                 {{ form.password1 }}
                 {% if form.password1.errors %}
                     <div class="error-text">
@@ -50,7 +55,7 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.password2.id_for_label }}">Повторите пароль</label>
+                <label for="{{ form.password2.id_for_label }}">Повторите пароль:</label><br>
                 {{ form.password2 }}
                 {% if form.password2.errors %}
                     <div class="error-text">

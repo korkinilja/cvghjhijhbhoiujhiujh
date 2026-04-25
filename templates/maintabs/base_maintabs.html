@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+{% load static %}
+{% load money_filters %}
+
+{% block title %}Бюджет{% endblock %}
+{% block body_class %}main-page{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/maintabs.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="app-layout">
+    <!-- Левый сайдбар -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-main">Бюджет</div>
+                <div class="sidebar-logo-sub">Ру</div>
+            </div>
+        </div>
+
+        <div class="sidebar-switcher">
+            <a href="{{ request.path }}?panel=accounts"
+               class="sidebar-tab {% if sidebar_panel == 'accounts' %}sidebar-tab--active{% endif %}">
+                Счета
+            </a>
+            <a href="{{ request.path }}?panel=goals"
+               class="sidebar-tab {% if sidebar_panel == 'goals' %}sidebar-tab--active{% endif %}">
+                Цели
+            </a>
+        </div>
+
+                <div class="sidebar-panel">
+            {% if sidebar_panel == 'accounts' %}
+                                {% if sidebar_containers %}
+                    {% for container in sidebar_containers %}
+                        <div class="sidebar-card account-card">
+                            <div class="account-card-header">
+                                <div class="account-card-left">
+                                    {% if container.type == 'cash' %}
+                                        <img src="{% static 'img/money-icon.svg' %}"
+                                             class="account-card-icon-img"
+                                             alt="Наличные">
+                                    {% else %}
+                                        <img src="{% static 'img/credit-card.svg' %}"
+                                             class="account-card-icon-img"
+                                             alt="Карта">
+                                    {% endif %}
+                                    <span class="account-card-name">{{ container.name }}</span>
+                                </div>
+                                <div class="account-card-right">
+                                    <span class="account-card-type">
+                                        {% if container.type == 'cash' %}наличные{% else %}карта{% endif %}
+                                    </span>
+                                    <span class="account-card-owner-username">
+                                        {{ container.owner.username }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="account-card-balance">
+                                {{ container.current_balance|ru_money }}
+                            </div>
+
+                            {% if request.user.account %}
+                                {% if request.user.account_type == 'owner' or container.owner_id == request.user.id %}
+                                    <form method="post"
+                                          action="{% url 'maintabs:delete_container' container.pk %}"
+                                          class="card-delete-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit"
+                                                class="card-delete-btn"
+                                                title="Удалить счёт">
+                                            <img src="{% static 'img/bin-icon.svg' %}" alt="Удалить">
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="sidebar-card">
+                        <p>Счета ещё не созданы.</p>
+                    </div>
+                {% endif %}
+            {% else %}
+                                {% if sidebar_goals %}
+                    {% for goal in sidebar_goals %}
+                        <div class="sidebar-card goal-card">
+                            <div class="goal-card-header">
+                                <div class="goal-card-left">
+                                    <span class="goal-card-name">{{ goal.name }}</span>
+                                </div>
+                                <div class="goal-card-right">
+                                    <span class="goal-card-owner-username">
+                                        {{ goal.owner.username }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="goal-card-amounts">
+                                {{ goal.current_amount|ru_money }}
+                                /
+                                {{ goal.target_amount|ru_money }}
+                            </div>
+
+                            {% if request.user.account_type == 'owner' and request.user.account %}
+                                <form method="post"
+                                      action="{% url 'maintabs:delete_goal' goal.pk %}"
+                                      class="card-delete-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit"
+                                            class="card-delete-btn"
+                                            title="Удалить цель">
+                                        <img src="{% static 'img/bin-icon.svg' %}" alt="Удалить">
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="sidebar-card">
+                        <p>Цели ещё не созданы.</p>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 10px;">
+            {% if request.user.account %}
+                {% if sidebar_panel == 'accounts' %}
+                    <a href="#add-account-modal" class="btn-primary sidebar-add-btn">
+                        Добавить счёт
+                    </a>
+                {% else %}
+                    <a href="#add-goal-modal" class="btn-primary sidebar-add-btn">
+                        Добавить цель
+                    </a>
+                {% endif %}
+            {% else %}
+                <button class="btn-primary sidebar-add-btn" disabled>
+                    {% if sidebar_panel == 'accounts' %}Добавить счёт{% else %}Добавить цель{% endif %}
+                </button>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Правая часть -->
+    <div class="main-area">
+        <nav class="main-tabs">
+            {% with current=request.resolver_match.url_name %}
+                <a href="{% url 'maintabs:dashboard' %}"
+                   class="main-tab {% if current == 'dashboard' %}main-tab--active{% endif %}">
+                    Учёт
+                </a>
+                <a href="{% url 'maintabs:plan' %}"
+                   class="main-tab {% if current == 'plan' %}main-tab--active{% endif %}">
+                    План
+                </a>
+                <a href="{% url 'maintabs:reports' %}"
+                   class="main-tab {% if current == 'reports' %}main-tab--active{% endif %}">
+                    Отчёты
+                </a>
+                <a href="{% url 'maintabs:notifications' %}"
+                   class="main-tab {% if current == 'notifications' %}main-tab--active{% endif %}">
+                    Уведомления
+                </a>
+
+                <span class="main-tabs-spacer"></span>
+
+                <span class="main-user">
+                    {{ request.user.username }}
+                </span>
+                <a href="{% url 'accounts:logout' %}" class="main-tab main-tab--logout">
+                    Выход
+                </a>
+            {% endwith %}
+        </nav>
+
+        <main class="main-content">
+            {% block page_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+{% if request.user.account %}
+    {% if container_form %}
+    <div id="add-account-modal"
+         class="modal{% if open_account_modal %} modal-open{% endif %}">
+        <div class="modal-card">
+            <a href="#" class="modal-close">&times;</a>
+            <h2>Добавить счёт</h2>
+
+            <form method="post" action="{% url 'maintabs:add_container' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}?panel=accounts">
+
+                <div class="form-group">
+                    <label for="{{ container_form.name.id_for_label }}">Название счёта</label>
+                    {{ container_form.name }}
+                    {% if container_form.name.errors %}
+                        <div class="error-text">
+                            {{ container_form.name.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>{{ container_form.type.label }}</label>
+                    {{ container_form.type }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ container_form.balance.id_for_label }}">Начальный баланс</label>
+                    {{ container_form.balance }}
+                </div>
+
+                {% if request.user.account_type == 'owner' %}
+                    <div class="form-group">
+                        <label for="{{ container_form.owner.id_for_label }}">Владелец</label>
+                        {{ container_form.owner }}
+                    </div>
+                {% else %}
+                    {{ container_form.owner.as_hidden }}
+                    <p>Владелец: {{ request.user.username }}</p>
+                {% endif %}
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if goal_form %}
+    <div id="add-goal-modal"
+         class="modal{% if open_goal_modal %} modal-open{% endif %}">
+        <div class="modal-card">
+            <a href="#" class="modal-close">&times;</a>
+            <h2>Добавить цель</h2>
+
+            <form method="post" action="{% url 'maintabs:add_goal' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}?panel=goals">
+
+                <div class="form-group">
+                    <label for="{{ goal_form.name.id_for_label }}">Название цели</label>
+                    {{ goal_form.name }}
+                    {% if goal_form.name.errors %}
+                        <div class="error-text">
+                            {{ goal_form.name.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ goal_form.target_amount.id_for_label }}">Всего нужно</label>
+                    {{ goal_form.target_amount }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ goal_form.current_amount.id_for_label }}">Накоплено</label>
+                    {{ goal_form.current_amount }}
+                </div>
+
+                {% if request.user.account_type == 'owner' %}
+                    <div class="form-group">
+                        <label for="{{ goal_form.owner.id_for_label }}">Ответственный</label>
+                        {{ goal_form.owner }}
+                    </div>
+                {% else %}
+                    {{ goal_form.owner.as_hidden }}
+                    <p>Ответственный: {{ request.user.username }}</p>
+                {% endif %}
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+{% if request.user.account and operation_form %}
+    <div id="add-operation-modal"
+         class="modal{% if open_operation_modal %} modal-open{% endif %}">
+        <div class="modal-card">
+            <a href="#" class="modal-close">&times;</a>
+            <h2>{% if operation_is_edit %}Редактировать операцию{% else %}Добавить операцию{% endif %}</h2>
+
+            <form method="post" action="{{ operation_form_action }}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+
+                <div class="form-group">
+                    <label for="{{ operation_form.amount.id_for_label }}">Сумма</label>
+                    {{ operation_form.amount }}
+                    {% if operation_form.amount.errors %}
+                        <div class="error-text">
+                            {{ operation_form.amount.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ operation_form.date.id_for_label }}">Дата</label>
+                    {{ operation_form.date }}
+                    {% if operation_form.date.errors %}
+                        <div class="error-text">
+                            {{ operation_form.date.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Время</label>
+                    {{ operation_form.time_hour }} : {{ operation_form.time_minute }}
+                    {% if operation_form.time_hour.errors %}
+                        <div class="error-text">
+                            {{ operation_form.time_hour.errors.0 }}
+                        </div>
+                    {% elif operation_form.time_minute.errors %}
+                        <div class="error-text">
+                            {{ operation_form.time_minute.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ operation_form.container.id_for_label }}">Счёт</label>
+                    {{ operation_form.container }}
+                    {% if operation_form.container.errors %}
+                        <div class="error-text">
+                            {{ operation_form.container.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ operation_form.category.id_for_label }}">Категория</label>
+                    {{ operation_form.category }}
+                    {% if operation_form.category.errors %}
+                        <div class="error-text">
+                            {{ operation_form.category.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ operation_form.subcategory.id_for_label }}">Подкатегория</label>
+                    {{ operation_form.subcategory }}
+                    {% if operation_form.subcategory.errors %}
+                        <div class="error-text">
+                            {{ operation_form.subcategory.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ operation_form.goal.id_for_label }}">Цель</label>
+                    {{ operation_form.goal }}
+                    {% if operation_form.goal.errors %}
+                        <div class="error-text">
+                            {{ operation_form.goal.errors.0 }}
+                        </div>
+                    {% endif %}
+                    <div class="goal-help">
+                        Цель можно выбрать, если выбрана специальная категория «На цели».
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <p>{{ operation_form.is_important.label }}:</p>
+                    {{ operation_form.is_important }}
+                    {% if operation_form.is_important.errors %}
+                        <div class="error-text">
+                            {{ operation_form.is_important.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ operation_form.comment.id_for_label }}">Комментарий</label>
+                    {{ operation_form.comment }}
+                    {% if operation_form.comment.errors %}
+                        <div class="error-text">
+                            {{ operation_form.comment.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                    {% if operation_is_edit %}
+                        <button type="submit"
+                                formaction="{% url 'maintabs:delete_operation' operation_id %}"
+                                formmethod="post"
+                                class="btn-danger">
+                            Удалить
+                        </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var data = {{ category_subcategories_json|default:'{}'|safe }};
+        var goalCats = {{ goal_category_ids_json|default:'[]'|safe }};
+        var catSelect = document.getElementById('{{ operation_form.category.id_for_label }}');
+        var subSelect = document.getElementById('{{ operation_form.subcategory.id_for_label }}');
+        var goalSelect = document.getElementById('{{ operation_form.goal.id_for_label }}');
+
+        if (!catSelect || !subSelect || !goalSelect) {
+            return;
+        }
+
+        function updateSubcategories() {
+            var catId = catSelect.value;
+            var currentValue = subSelect.value;
+
+            subSelect.innerHTML = '';
+            var placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '---------';
+            subSelect.appendChild(placeholder);
+
+            if (data[catId]) {
+                data[catId].forEach(function (item) {
+                    var opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    subSelect.appendChild(opt);
+                });
+            }
+
+            if (currentValue) {
+                subSelect.value = currentValue;
+            }
+        }
+
+        function updateGoalAvailability() {
+            var catId = parseInt(catSelect.value || '0');
+            var enabled = goalCats.indexOf(catId) !== -1;
+            if (!enabled) {
+                goalSelect.value = '';
+                goalSelect.disabled = true;
+            } else {
+                goalSelect.disabled = false;
+            }
+        }
+
+        updateSubcategories();
+        updateGoalAvailability();
+
+        catSelect.addEventListener('change', function () {
+            subSelect.value = '';
+            updateSubcategories();
+            updateGoalAvailability();
+        });
+    });
+    </script>
+{% endif %}
+{% endblock %}

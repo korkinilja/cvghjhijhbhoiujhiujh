@@ -1,0 +1,98 @@
+{% extends "maintabs/base_maintabs.html" %}
+{% load static %}
+{% load money_filters %}
+{% block title %}Учёт{% endblock %}
+
+{% block page_content %}
+<div class="main-card">
+    <div class="main-card-header">
+        <h1>Учёт</h1>
+        
+        {% if account %}
+            <div class="main-card-header-actions">
+                <a href="#add-operation-modal" class="add-operation-btn" title="Добавить операцию">
+                    +
+                </a>
+                <a href="#add-category-modal" class="add-category-link">
+                    <span>Добавить</span>
+                    <span>категорию</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if not account %}
+        <p>Счёт не определён.</p>
+    {% else %}
+        {% if operations %}
+            <div class="notif-block">
+                <h2 style="margin-top: 0; font-size: 18px;">Операции за текущий месяц</h2>
+
+                <ul class="operations-list">
+                    {% for op in operations %}
+                        <li class="operation-item">
+                            <div class="operation-main">
+                                <div class="operation-row">
+                                    <span class="operation-amount {% if op.category.type == 'income' %}op-amount-income{% else %}op-amount-expense{% endif %}">
+                                        {% if op.category.type == 'income' %}+{% else %}-{% endif %}
+                                        {{ op.amount|ru_money }}
+                                    </span>
+                                    <span class="operation-container">
+                                        {{ op.container.name }}
+                                    </span>
+                                    <span class="operation-datetime">
+                                        {{ op.datetime|date:"d.m.Y H:i" }}
+                                    </span>
+                                </div>
+                                <div class="operation-row operation-row-small">
+                                    <span class="operation-user">
+                                        {{ op.user.username }}
+                                    </span>
+                                    <span class="operation-category">
+                                        {% if op.subcategory %}
+                                            {{ op.subcategory.name }}
+                                        {% else %}
+                                            {{ op.category.name }}
+                                        {% endif %}
+                                    </span>
+                                    {% if op.goal %}
+                                        <span class="operation-goal">
+                                            Цель: {{ op.goal.name }}
+                                        </span>
+                                    {% endif %}
+                                    {% if op.is_important %}
+                                        <span class="operation-importance op-importance-necessary">
+                                            Необходимая
+                                        </span>
+                                    {% else %}
+                                        <span class="operation-importance op-importance-free">
+                                            Свободная
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                {% if op.comment %}
+                                    <div class="operation-comment">
+                                        {{ op.comment }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            {% if request.user.account_type == 'owner' or op.user_id == request.user.id %}
+                                <form method="get"
+                                      action="{% url 'maintabs:edit_operation' op.pk %}"
+                                      class="operation-edit-form">
+                                    <button type="submit" class="operation-edit-btn" title="Редактировать">
+                                        <img src="{% static 'img/pen-icon.svg' %}" alt="Редактировать">
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <p>Пока нет операций за текущий месяц.</p>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
