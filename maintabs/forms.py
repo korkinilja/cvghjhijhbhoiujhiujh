@@ -36,20 +36,29 @@ class MoneyContainerForm(forms.ModelForm):
                     self.initial['owner'] = user
 
     def clean_name(self):
-        """
-        Проверяем, что в рамках этого account нет другого счёта
-        с таким же названием (без учёта регистра).
-        """
         name = self.cleaned_data.get('name')
-        if self.account and name:
-            qs = MoneyContainer.objects.filter(
-                account=self.account,
-                name__iexact=name,
-            )
-            if self.instance.pk:
-                qs = qs.exclude(pk=self.instance.pk)
-            if qs.exists():
-                raise forms.ValidationError('Счёт с таким названием уже существует.')
+        if not name:
+            return name
+
+        # self.account у тебя уже передаётся в форму; если вдруг нет — защита:
+        account = getattr(self, 'account', None)
+        if account is None:
+            return name
+
+        qs = MoneyContainer.objects.filter(
+            account=account,
+            name__iexact=name,
+        )
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        # Если такое имя уже встречалось у контейнера, у которого есть операции — запрещаем навсегда
+        if qs.filter(operations__isnull=False).exists():
+            raise forms.ValidationError('Ранее уже был счёт с таким именем')
+
+        if qs.filter(is_active=True).exists():
+            raise forms.ValidationError('Счёт с таким названием уже существует.')
+
         return name
 
 class GoalForm(forms.ModelForm):
@@ -149,7 +158,8 @@ class OperationForm(forms.ModelForm):
 
         if self.account is not None:
             self.fields['container'].queryset = MoneyContainer.objects.filter(
-                account=self.account
+                account=self.account,
+                is_active=True
             ).order_by('name')
         else:
             self.fields['container'].queryset = MoneyContainer.objects.none()

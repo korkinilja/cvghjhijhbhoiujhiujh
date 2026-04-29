@@ -99,11 +99,22 @@ class MoneyContainer(models.Model):
         decimal_places=2,
         default=Decimal('0.00'),
     )
+    
+    is_active = models.BooleanField(
+        'Активен',
+        default=True,
+    )
 
     class Meta:
         verbose_name = 'Контейнер денег'
         verbose_name_plural = 'Контейнеры денег'
-        unique_together = ('account', 'name')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['account', 'name'],
+                condition=models.Q(is_active=True),
+                name='uniq_active_container_name',
+            )
+        ]
 
     def __str__(self):
         return f'{self.name} ({self.get_type_display()})'

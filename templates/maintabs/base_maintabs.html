@@ -288,122 +288,128 @@
     <div id="add-operation-modal"
          class="modal{% if open_operation_modal %} modal-open{% endif %}">
         <div class="modal-card">
-            <a href="#" class="modal-close">&times;</a>
+            <a href="{% url 'maintabs:dashboard' %}" class="modal-close">&times;</a>
             <h2>{% if operation_is_edit %}Редактировать операцию{% else %}Добавить операцию{% endif %}</h2>
 
-            <form method="post" action="{{ operation_form_action }}">
+            {% if operation_form.non_field_errors %}
+                <div class="error-text">
+                    {{ operation_form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <form id="operation-save-form" method="post" action="{{ operation_form_action }}">
                 {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.path }}">
+                        <input type="hidden" name="next" value="{% url 'maintabs:dashboard' %}">
 
-                <div class="form-group">
-                    <label for="{{ operation_form.amount.id_for_label }}">Сумма</label>
-                    {{ operation_form.amount }}
-                    {% if operation_form.amount.errors %}
-                        <div class="error-text">
-                            {{ operation_form.amount.errors.0 }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label for="{{ operation_form.date.id_for_label }}">Дата</label>
-                    {{ operation_form.date }}
-                    {% if operation_form.date.errors %}
-                        <div class="error-text">
-                            {{ operation_form.date.errors.0 }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label>Время</label>
-                    {{ operation_form.time_hour }} : {{ operation_form.time_minute }}
-                    {% if operation_form.time_hour.errors %}
-                        <div class="error-text">
-                            {{ operation_form.time_hour.errors.0 }}
-                        </div>
-                    {% elif operation_form.time_minute.errors %}
-                        <div class="error-text">
-                            {{ operation_form.time_minute.errors.0 }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label for="{{ operation_form.container.id_for_label }}">Счёт</label>
-                    {{ operation_form.container }}
-                    {% if operation_form.container.errors %}
-                        <div class="error-text">
-                            {{ operation_form.container.errors.0 }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label for="{{ operation_form.category.id_for_label }}">Категория</label>
-                    {{ operation_form.category }}
-                    {% if operation_form.category.errors %}
-                        <div class="error-text">
-                            {{ operation_form.category.errors.0 }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label for="{{ operation_form.subcategory.id_for_label }}">Подкатегория</label>
-                    {{ operation_form.subcategory }}
-                    {% if operation_form.subcategory.errors %}
-                        <div class="error-text">
-                            {{ operation_form.subcategory.errors.0 }}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label for="{{ operation_form.goal.id_for_label }}">Цель</label>
-                    {{ operation_form.goal }}
-                    {% if operation_form.goal.errors %}
-                        <div class="error-text">
-                            {{ operation_form.goal.errors.0 }}
-                        </div>
-                    {% endif %}
-                    <div class="goal-help">
-                        Цель можно выбрать, если выбрана специальная категория «На цели».
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="{{ operation_form.amount.id_for_label }}">Сумма</label>
+                        {{ operation_form.amount }}
+                        {% if operation_form.amount.errors %}
+                            <div class="error-text">{{ operation_form.amount.errors.0 }}</div>
+                        {% endif %}
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <p>{{ operation_form.is_important.label }}:</p>
-                    {{ operation_form.is_important }}
-                    {% if operation_form.is_important.errors %}
-                        <div class="error-text">
-                            {{ operation_form.is_important.errors.0 }}
+                    <div class="form-group">
+                        <label for="{{ operation_form.container.id_for_label }}">Счёт</label>
+                        {{ operation_form.container }}
+                        {% if operation_form.container.errors %}
+                            <div class="error-text">{{ operation_form.container.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ operation_form.date.id_for_label }}">Дата</label>
+                        {{ operation_form.date }}
+                        {% if operation_form.date.errors %}
+                            <div class="error-text">{{ operation_form.date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label>Время</label>
+                        <div class="time-inline">
+                            {{ operation_form.time_hour }}
+                            <span class="time-colon">:</span>
+                            {{ operation_form.time_minute }}
                         </div>
-                    {% endif %}
-                </div>
+                        {% if operation_form.time_hour.errors %}
+                            <div class="error-text">{{ operation_form.time_hour.errors.0 }}</div>
+                        {% elif operation_form.time_minute.errors %}
+                            <div class="error-text">{{ operation_form.time_minute.errors.0 }}</div>
+                        {% endif %}
+                    </div>
 
-                <div class="form-group">
-                    <label for="{{ operation_form.comment.id_for_label }}">Комментарий</label>
-                    {{ operation_form.comment }}
-                    {% if operation_form.comment.errors %}
-                        <div class="error-text">
-                            {{ operation_form.comment.errors.0 }}
+                    <div class="form-group">
+                        <label for="{{ operation_form.category.id_for_label }}">Категория</label>
+                        {{ operation_form.category }}
+                        {% if operation_form.category.errors %}
+                            <div class="error-text">{{ operation_form.category.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ operation_form.subcategory.id_for_label }}">Подкатегория</label>
+                        {{ operation_form.subcategory }}
+                        {% if operation_form.subcategory.errors %}
+                            <div class="error-text">{{ operation_form.subcategory.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <div class="field-label-row">
+                            <label for="{{ operation_form.goal.id_for_label }}">Цель</label>
+                            <details class="info-popover">
+                                <summary title="Подсказка">i</summary>
+                                <div class="info-popover-card">
+                                    Цель можно выбрать, если выбрана специальная категория «На цели».
+                                </div>
+                            </details>
                         </div>
-                    {% endif %}
-                </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Сохранить</button>
-                    {% if operation_is_edit %}
-                        <button type="submit"
-                                formaction="{% url 'maintabs:delete_operation' operation_id %}"
-                                formmethod="post"
-                                class="btn-danger">
-                            Удалить
-                        </button>
-                    {% endif %}
+                        {{ operation_form.goal }}
+                        {% if operation_form.goal.errors %}
+                            <div class="error-text">{{ operation_form.goal.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ operation_form.comment.id_for_label }}">Комментарий</label>
+                        {{ operation_form.comment }}
+                        {% if operation_form.comment.errors %}
+                            <div class="error-text">{{ operation_form.comment.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <div class="field-label">Важность:</div>
+                        {{ operation_form.is_important }}
+                        {% if operation_form.is_important.errors %}
+                            <div class="error-text">{{ operation_form.is_important.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div></div>
                 </div>
             </form>
+
+            <div class="form-actions">
+                <button type="submit" form="operation-save-form" class="btn-primary">Сохранить</button>
+
+                {% if operation_is_edit %}
+                    <form id="operation-delete-form"
+                          method="post"
+                          action="{% url 'maintabs:delete_operation' operation_id %}"
+                          style="display:inline;">
+                        {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'maintabs:dashboard' %}">
+            </form>
+
+                    <button type="submit" form="operation-delete-form" class="btn-danger">
+                        Удалить
+                    </button>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -464,5 +470,60 @@
         });
     });
     </script>
+{% endif %}
+{% if request.user.account %}
+    <div id="add-category-modal"
+         class="modal{% if open_category_modal %} modal-open{% endif %}">
+        <div class="modal-card">
+            <a href="{% url 'maintabs:dashboard' %}" class="modal-close">&times;</a>
+            <h2>Создать категорию</h2>
+
+            <form method="post" action="{% url 'maintabs:add_category' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+
+                <div class="form-group">
+                    <p>{{ category_form.mode.label }}:</p>
+                    {{ category_form.mode }}
+                    {% if category_form.mode.errors %}
+                        <div class="error-text">{{ category_form.mode.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ category_form.parent.id_for_label }}">Категория (для подкатегории)</label>
+                    {{ category_form.parent }}
+                    {% if category_form.parent.errors %}
+                        <div class="error-text">{{ category_form.parent.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ category_form.name.id_for_label }}">Название</label>
+                    {{ category_form.name }}
+                    {% if category_form.name.errors %}
+                        <div class="error-text">{{ category_form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ category_form.subcategories_csv.id_for_label }}">Подкатегории (через запятую)</label>
+                    {{ category_form.subcategories_csv }}
+                    {% if category_form.subcategories_csv.help_text %}
+                        <div style="font-size: 12px; color: #c7e0d3;">
+                            {{ category_form.subcategories_csv.help_text }}
+                        </div>
+                    {% endif %}
+                    {% if category_form.subcategories_csv.errors %}
+                        <div class="error-text">{{ category_form.subcategories_csv.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endif %}
 {% endblock %}

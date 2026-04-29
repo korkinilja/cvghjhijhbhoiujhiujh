@@ -352,7 +352,8 @@ def get_sidebar_context(user: User, selected_panel: str = 'accounts'):
         members = User.objects.filter(account=account).order_by('username')
 
         containers_qs = MoneyContainer.objects.filter(
-            account=account
+            account=account,
+            is_active=True,
         ).select_related('owner')
         goals_qs = Goal.objects.filter(
             account=account
@@ -600,12 +601,14 @@ def delete_container(request, pk):
         messages.error(request, 'Удалять счета может только владелец счёта.')
         return redirect(next_url)
 
-    container = get_object_or_404(MoneyContainer, pk=pk, account=account)
-
+    container = get_object_or_404(MoneyContainer, pk=pk, account=account, is_active=True)
     name = container.name
     owner_username = container.owner.username
-
-    container.delete()
+    if container.operations.exists():
+        container.is_active = False
+        container.save(update_fields=['is_active'])
+    else:
+        container.delete()
 
     Notification.objects.create(
         account=account,
@@ -722,8 +725,9 @@ def edit_operation(request, pk):
 
     account = user.account
 
-    op = get_object_or_404(Operation, pk=pk, account=account)
-
+    op = Operation.objects.filter(pk=pk, account=account).first()
+    if op is None:
+        return redirect('maintabs:dashboard')
     # Права: владелец может всё, участник — только свои операции
     if user.account_type == User.MEMBER and op.user_id != user.id:
         return redirect('maintabs:dashboard')
@@ -748,8 +752,7 @@ def edit_operation(request, pk):
                 new_op.goal.current_amount += new_op.amount
                 new_op.goal.save(update_fields=['current_amount'])
 
-            next_url = request.POST.get('next') or reverse('maintabs:dashboard')
-            return redirect(next_url)
+            return redirect('maintabs:dashboard')
     else:
         form = OperationForm(instance=op, account=account, user=user)
 

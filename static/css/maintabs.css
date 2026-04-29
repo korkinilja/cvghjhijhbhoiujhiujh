@@ -408,11 +408,11 @@ body.main-page .top-bar {
 }
 
 .modal:target {
-    display: flex;
+    display: flex !important;
 }
 
 .modal.modal-open {
-    display: flex;
+    display: flex !important;;
 }
 
 .modal-card {
@@ -650,4 +650,121 @@ body.main-page .top-bar {
     display: flex;
     justify-content: center;
     gap: 8px;
+}
+
+/* Базовые стили форм внутри maintabs (модалки) */
+
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-group > label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Поля ввода/селекты — чтобы они шли сразу под label */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #355645;
+    background-color: #0f2017;
+    color: #e9f5ee;
+}
+
+/* Радио-выбор (важность): убираем «лишние» отступы у ul */
+.form-group ul {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+}
+
+.form-group li {
+    margin: 0 0 4px;
+}
+
+.field-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.info-popover {
+    position: relative;
+}
+
+.info-popover summary {
+    list-style: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid #a6d8bb;
+    color: #a6d8bb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.info-popover summary::-webkit-details-marker {
+    display: none;
+}
+
+.info-popover-card {
+    position: absolute;
+    right: 0;
+    top: 24px;
+    width: 260px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #355645;
+    background: rgba(9, 22, 16, 0.98);
+    color: #a6d8bb;
+    font-size: 12px;
+    z-index: 1100;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+}
+
+.time-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.time-inline input {
+    width: 56px;
+    text-align: center;
+}
+
+.time-colon {
+    font-weight: 700;
+    color: #c7e0d3;
+}
+
+.field-label {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* на всякий случай, если где-то ещё остались <p> в form-group */
+.form-group p {
+    margin: 0 0 4px;
 }
