@@ -10,13 +10,128 @@
         
         {% if account %}
             <div class="main-card-header-actions">
-                <a href="#add-operation-modal" class="add-operation-btn" title="Добавить операцию">
-                    +
+                <a href="#add-operation-modal" class="circle-action-btn" title="Добавить операцию">
+                    <img src="{% static 'img/plus-icon.svg' %}" alt="Добавить">
                 </a>
+            
+                <button type="button" class="circle-action-btn" id="filterToggle" title="Фильтр">
+                    <img src="{% static 'img/filter-icon.svg' %}" alt="Фильтр">
+                </button>
+                
+                            <button type="button" class="circle-action-btn" id="rangeToggle" title="Период">
+                <img src="{% static 'img/calendar-icon.svg' %}" alt="Период">
+            </button>
+
+            <div class="range-popover" id="rangePopover">
+                <form method="get" action="{% url 'maintabs:dashboard' %}">
+                    {# сохраняем все текущие фильтры, кроме range #}
+                    {% for key, values in request.GET.lists %}
+                        {% if key != 'range' %}
+                            {% for v in values %}
+                                <input type="hidden" name="{{ key }}" value="{{ v }}">
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="range-title">Период</div>
+
+                    {% if filter_date_error %}
+                        <div class="error-text" style="margin-bottom: 8px;">
+                            Некорректные даты
+                        </div>
+                    {% endif %}
+
+                    <div class="range-dates">
+                        <input type="text" name="from" placeholder="ДД.ММ.ГГ" value="{{ filter_date_from }}" maxlength="10">
+                        <span class="range-dash">-</span>
+                        <input type="text" name="to" placeholder="ДД.ММ.ГГ" value="{{ filter_date_to }}" maxlength="10">
+                        <button type="submit" class="btn-primary range-ok">OK</button>
+                    </div>
+
+                    <button type="submit" name="range" value="month"
+                            class="range-item {% if period_key == 'month' %}range-item--active{% endif %}">
+                        Текущий месяц
+                    </button>
+                    <button type="submit" name="range" value="30"
+                            class="range-item {% if period_key == '30' %}range-item--active{% endif %}">
+                        30 дней
+                    </button>
+                    <button type="submit" name="range" value="14"
+                            class="range-item {% if period_key == '14' %}range-item--active{% endif %}">
+                        14 дней
+                    </button>
+                    <button type="submit" name="range" value="7"
+                            class="range-item {% if period_key == '7' %}range-item--active{% endif %}">
+                        7 дней
+                    </button>
+                </form>
+            </div>
+
                 <a href="#add-category-modal" class="add-category-link">
                     <span>Добавить</span>
                     <span>категорию</span>
                 </a>
+            
+                <div class="filter-popover" id="filterPopover">
+                    <form method="get" action="{% url 'maintabs:dashboard' %}">
+                        <input type="hidden" name="panel" value="{{ sidebar_panel }}">
+                        <input type="hidden" name="range" value="{{ period_key }}">
+
+                        <div class="filter-grid">
+                <div class="filter-col">
+                    <div class="filter-section">
+                        <div class="filter-title">Пользователи</div>
+                        {% for u in filter_users %}
+                            <label class="filter-item">
+                                <input type="checkbox" name="u" value="{{ u.id }}"
+                                       {% if u.id in filter_selected_users %}checked{% endif %}>
+                                {{ u.username }}
+                            </label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="filter-section">
+                        <div class="filter-title">Сумма</div>
+                        <div class="filter-row">
+                            <input type="text" name="min" placeholder="от" value="{{ filter_amount_min }}">
+                            <input type="text" name="max" placeholder="до" value="{{ filter_amount_max }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-col">
+                    <div class="filter-section">
+                        <div class="filter-title">Счета</div>
+                        {% for c in filter_containers %}
+                            <label class="filter-item">
+                                <input type="checkbox" name="c" value="{{ c.id }}"
+                                       {% if c.id in filter_selected_containers %}checked{% endif %}>
+                                {{ c.name }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="filter-col">
+                    <div class="filter-section">
+                        <div class="filter-title">Категории</div>
+                        {% for cat in filter_categories %}
+                            <label class="filter-item">
+                                <input type="checkbox" name="cat" value="{{ cat.id }}"
+                                       {% if cat.id in filter_selected_categories %}checked{% endif %}>
+                                {{ cat.name }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button type="submit" class="btn-primary">Применить</button>
+                <a class="btn-danger" href="{% url 'maintabs:dashboard' %}?panel={{ sidebar_panel }}&range={{ period_key }}">Сбросить</a>
+            </div>
+                    </form>
+                </div>
             </div>
         {% endif %}
     </div>
@@ -60,6 +175,7 @@
                                             Цель: {{ op.goal.name }}
                                         </span>
                                     {% endif %}
+                                {% if op.category.type != 'income' %}
                                     {% if op.is_important %}
                                         <span class="operation-importance op-importance-necessary">
                                             Необходимая
@@ -69,6 +185,7 @@
                                             Свободная
                                         </span>
                                     {% endif %}
+                                {% endif %}
                                 </div>
                                 {% if op.comment %}
                                     <div class="operation-comment">
@@ -79,8 +196,16 @@
 
                             {% if request.user.account_type == 'owner' or op.user_id == request.user.id %}
                                 <form method="get"
-                                      action="{% url 'maintabs:edit_operation' op.pk %}"
+                                      action="{% url 'maintabs:dashboard' %}"
                                       class="operation-edit-form">
+                                    {% for key, values in request.GET.lists %}
+                                        {% if key != 'edit' %}
+                                            {% for v in values %}
+                                                <input type="hidden" name="{{ key }}" value="{{ v }}">
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <input type="hidden" name="edit" value="{{ op.pk }}">
                                     <button type="submit" class="operation-edit-btn" title="Редактировать">
                                         <img src="{% static 'img/pen-icon.svg' %}" alt="Редактировать">
                                     </button>
@@ -91,8 +216,67 @@
                 </ul>
             </div>
         {% else %}
-            <p>Пока нет операций за текущий месяц.</p>
+            <p>Нет операций</p>
         {% endif %}
     {% endif %}
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var filterToggle = document.getElementById('filterToggle');
+    var filterPop = document.getElementById('filterPopover');
+
+    var rangeToggle = document.getElementById('rangeToggle');
+    var rangePop = document.getElementById('rangePopover');
+
+    function closeAll() {
+        if (filterPop) filterPop.classList.remove('is-open');
+        if (rangePop) rangePop.classList.remove('is-open');
+    }
+
+    function toggle(pop) {
+        var isOpen = pop.classList.contains('is-open');
+        closeAll();
+        if (!isOpen) pop.classList.add('is-open');
+    }
+
+    if (filterToggle && filterPop) {
+        filterToggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle(filterPop);
+        });
+        filterPop.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    if (rangeToggle && rangePop) {
+        rangeToggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle(rangePop);
+        });
+        rangePop.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    document.addEventListener('click', closeAll);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeAll();
+    });
+    function maskDateInput(inp) {
+        if (!inp) return;
+        inp.addEventListener('input', function () {
+            var digits = inp.value.replace(/\D/g, '').slice(0, 8);
+            var out = '';
+            if (digits.length >= 2) out += digits.slice(0, 2);
+            if (digits.length >= 3) out += '.' + digits.slice(2, 4);
+            if (digits.length >= 5) out += '.' + digits.slice(4, 8);
+            inp.value = out;
+        });
+    }
+
+    var rangeFrom = document.querySelector('#rangePopover input[name="from"]');
+    var rangeTo = document.querySelector('#rangePopover input[name="to"]');
+    maskDateInput(rangeFrom);
+    maskDateInput(rangeTo);
+});
+</script>
 {% endblock %}

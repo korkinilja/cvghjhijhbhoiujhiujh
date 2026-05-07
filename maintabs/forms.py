@@ -106,7 +106,12 @@ class GoalForm(forms.ModelForm):
 class OperationForm(forms.ModelForm):
     date = forms.CharField(
         label='Дата',
-        widget=forms.TextInput(attrs={'placeholder': 'ДД.ММ.ГГГГ'}),
+        widget=forms.TextInput(attrs={
+            'placeholder': 'ДД.ММ.ГГГГ',
+            'maxlength': '10',
+            'inputmode': 'numeric',
+            'autocomplete': 'off',
+        }),
     )
     time_hour = forms.CharField(
         label='Часы',
@@ -125,7 +130,7 @@ class OperationForm(forms.ModelForm):
         ],
         widget=forms.RadioSelect,
         coerce=lambda v: v == 'necessary',
-        initial='necessary',
+        required=False,
     )
 
     class Meta:
@@ -187,13 +192,13 @@ class OperationForm(forms.ModelForm):
         if not self.is_bound:
             if self.instance and self.instance.pk:
                 dt = timezone.localtime(self.instance.datetime)
-                self.fields['date'].initial = dt.strftime('%d.%m.%Y')
+                self.fields['date'].initial = dt.strftime('%d.%m.%y')
                 self.fields['time_hour'].initial = dt.strftime('%H')
                 self.fields['time_minute'].initial = dt.strftime('%M')
                 self.fields['is_important'].initial = 'necessary' if self.instance.is_important else 'free'
             else:
                 dt = timezone.localtime()
-                self.fields['date'].initial = dt.strftime('%d.%m.%Y')
+                self.fields['date'].initial = dt.strftime('%d.%m.%y')
                 self.fields['time_hour'].initial = dt.strftime('%H')
                 self.fields['time_minute'].initial = dt.strftime('%M')
 
@@ -208,7 +213,16 @@ class OperationForm(forms.ModelForm):
             raise forms.ValidationError('Укажите дату и время операции.')
 
         try:
-            day, month, year = map(int, date_str.split('.'))
+            parts = date_str.split('.')
+            if len(parts) != 3 or any(len(p) != 2 for p in parts):
+                raise forms.ValidationError('Формат даты: ДД.ММ.ГГ.')
+
+            try:
+                day = int(parts[0])
+                month = int(parts[1])
+                year = 2000 + int(parts[2])
+            except ValueError:
+                raise forms.ValidationError('Формат даты: ДД.ММ.ГГ.')
             hour = int(hour_str)
             minute = int(minute_str)
         except ValueError:
@@ -241,6 +255,14 @@ class OperationForm(forms.ModelForm):
 
         self.cleaned_data['datetime'] = dt
 
+        if dt > timezone.now():
+            self.add_error('date', 'Дата и время операции не могут быть позже текущего момента.')
+            return cleaned
+
+        if dt.year < 2020:
+            self.add_error('date', 'Операции раньше 2020 года запрещены.')
+            return cleaned
+        
         if not container:
             self.add_error('container', 'Выберите счёт.')
         if not category:
@@ -271,6 +293,13 @@ class OperationForm(forms.ModelForm):
             if goal:
                 self.add_error('goal', 'Цель можно выбрать только для категории "На цели".')
 
+        if category.type == Category.TYPE_INCOME:
+            cleaned['is_important'] = False
+        else:
+            if cleaned.get('is_important') is None:
+                self.add_error('is_important', 'Выберите важность для расхода.')
+        
+        
         # Проверка достаточности средств для расхода
         if category.type == Category.TYPE_EXPENSE:
             current_balance = container.current_balance
@@ -315,7 +344,8 @@ class CategoryCreateForm(forms.Form):
 
     name = forms.CharField(
         label='Название',
-        max_length=50,
+        max_length=20,
+        widget=forms.TextInput(attrs={'maxlength': '20'})
     )
 
     subcategories_csv = forms.CharField(
@@ -331,9 +361,40 @@ class CategoryCreateForm(forms.Form):
 
         if mode == self.MODE_SUBCATEGORY and not parent:
             self.add_error('parent', 'Выберите категорию, к которой относится подкатегория.')
-
         return cleaned
+    
+    def clean_name(self):
+        name = (self.cleaned_data.get('name') or '').strip()
+        if len(name) > 20:
+            raise forms.ValidationError('Название не должно превышать 20 символов.')
+        return name
 
+    def clean_subcategories_csv(self):
+        subs_csv = (self.cleaned_data.get('subcategories_csv') or '').strip()
+        mode = self.cleaned_data.get('mode')
+
+        # Если создаём подкатегорию — это поле не используется
+        if mode == self.MODE_SUBCATEGORY:
+            return ''
+
+        if not subs_csv:
+            return ''
+
+        bad = []
+        for part in subs_csv.split(','):
+            subname = part.strip()
+            if not subname:
+                continue
+            if len(subname) > 20:
+                bad.append(subname)
+
+        if bad:
+            raise forms.ValidationError(
+                'Подкатегории не должны превышать 20 символов: ' + ', '.join(bad)
+            )
+
+        return subs_csv
+    
     def save(self):
         mode = self.cleaned_data['mode']
         parent = self.cleaned_data.get('parent')

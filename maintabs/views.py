@@ -7,7 +7,11 @@ from .models import BudgetAccount, JoinRequest, MoneyContainer, Goal, Notificati
 from .forms import MoneyContainerForm, GoalForm, OperationForm, CategoryCreateForm
 from django.urls import reverse
 from urllib.parse import urlparse
+from decimal import Decimal, InvalidOperation
+from datetime import timedelta, datetime, time
 import json
+from urllib.parse import parse_qs
+from django.http import QueryDict
 
 
 @login_required
@@ -23,29 +27,196 @@ def dashboard(request):
     account_owner = account.owner if account else None
 
     operations = None
+    filter_users = []
+    filter_containers = []
+    filter_categories = []
+    selected_users = set()
+    selected_containers = set()
+    selected_categories = set()
+
+    amount_min = request.GET.get('min', '').strip()
+    amount_max = request.GET.get('max', '').strip()
+    period_key = request.GET.get('range', 'month')
+
+    filter_date_from = request.GET.get('from', '').strip()
+    filter_date_to = request.GET.get('to', '').strip()
+    filter_date_error = False
+
+    def _parse_dmy(s: str):
+        # принимает ДД.ММ.ГГ или ДД.ММ.ГГГГ
+        s = (s or '').strip()
+        if not s:
+            return None
+        parts = s.split('.')
+        if len(parts) != 3:
+            return None
+        try:
+            d = int(parts[0])
+            m = int(parts[1])
+            y = int(parts[2])
+        except ValueError:
+            return None
+        if y < 100:
+            y += 2000
+        from datetime import date
+        try:
+            return date(y, m, d)
+        except ValueError:
+            return None
+
+    # next_url: полный текущий URL, но БЕЗ edit, чтобы закрытие/сохранение не оставляло edit-мод
+    q_next = request.GET.copy()
+    q_next.pop('edit', None)
+    next_url = request.path + ('?' + q_next.urlencode() if q_next else '')
+
+    # операционная модалка по умолчанию: добавление
+    operation_form_obj = OperationForm(account=account, user=user) if account else None
+    operation_form_action = reverse('maintabs:add_operation')
+    operation_is_edit = False
+    operation_id = None
+    open_operation_modal = False
+
     if account is not None:
-        today = timezone.localdate()
-        first_day = today.replace(day=1)
-        operations = Operation.objects.filter(
+        # варианты для фильтра
+        filter_users = list(User.objects.filter(account=account).order_by('username'))
+        filter_containers = list(MoneyContainer.objects.filter(account=account, is_active=True).order_by('name'))
+        filter_categories = list(Category.objects.filter(parent__isnull=True).order_by('name'))
+
+        # базовый период: custom from-to или range
+        now = timezone.localtime()
+        end_dt = timezone.now()
+
+        d_from = _parse_dmy(filter_date_from)
+        d_to = _parse_dmy(filter_date_to)
+
+        custom_applied = False
+        if filter_date_from or filter_date_to:
+            if d_from is None or d_to is None or d_from > d_to:
+                filter_date_error = True
+            else:
+                start_dt = timezone.make_aware(
+                    datetime.combine(d_from, time.min),
+                    timezone.get_current_timezone(),
+                )
+                end_dt = timezone.make_aware(
+                    datetime.combine(d_to, time.max),
+                    timezone.get_current_timezone(),
+                )
+                period_key = 'custom'
+                custom_applied = True
+
+        if not custom_applied:
+            if period_key in ('30', '14', '7'):
+                start_dt = now - timedelta(days=int(period_key))
+            else:
+                period_key = 'month'
+                first_day = now.date().replace(day=1)
+                start_dt = timezone.make_aware(
+                    datetime.combine(first_day, time.min),
+                    timezone.get_current_timezone(),
+                )
+
+        qs = Operation.objects.filter(
             account=account,
-            datetime__date__gte=first_day,
-            datetime__date__lte=today,
+            datetime__gte=start_dt,
+            datetime__lte=end_dt,
         ).select_related('container', 'category', 'subcategory', 'user', 'goal')
 
+        # пользователи
+        u_ids = request.GET.getlist('u')
+        try:
+            u_ids_int = [int(x) for x in u_ids]
+        except ValueError:
+            u_ids_int = []
+        if u_ids_int:
+            qs = qs.filter(user_id__in=u_ids_int)
+            selected_users = set(u_ids_int)
+
+        # счета
+        c_ids = request.GET.getlist('c')
+        try:
+            c_ids_int = [int(x) for x in c_ids]
+        except ValueError:
+            c_ids_int = []
+        if c_ids_int:
+            qs = qs.filter(container_id__in=c_ids_int)
+            selected_containers = set(c_ids_int)
+
+        # категории
+        cat_ids = request.GET.getlist('cat')
+        try:
+            cat_ids_int = [int(x) for x in cat_ids]
+        except ValueError:
+            cat_ids_int = []
+        if cat_ids_int:
+            qs = qs.filter(category_id__in=cat_ids_int)
+            selected_categories = set(cat_ids_int)
+
+        # сумма от/до
+        if amount_min:
+            try:
+                qs = qs.filter(amount__gte=Decimal(amount_min.replace(',', '.')))
+            except (InvalidOperation, ValueError):
+                amount_min = ''
+        if amount_max:
+            try:
+                qs = qs.filter(amount__lte=Decimal(amount_max.replace(',', '.')))
+            except (InvalidOperation, ValueError):
+                amount_max = ''
+
+        operations = qs
+
+        # открыть модалку редактирования, если пришёл ?edit=<id>
+        edit_id = request.GET.get('edit', '').strip()
+        if edit_id:
+            try:
+                edit_pk = int(edit_id)
+            except ValueError:
+                edit_pk = None
+
+            if edit_pk is not None:
+                op = Operation.objects.filter(pk=edit_pk, account=account).first()
+                if op is not None and (user.account_type == User.OWNER or op.user_id == user.id):
+                    operation_form_obj = OperationForm(instance=op, account=account, user=user)
+                    operation_form_action = reverse('maintabs:edit_operation', args=[op.pk])
+                    operation_is_edit = True
+                    operation_id = op.pk
+                    open_operation_modal = True
+
     panel = request.GET.get('panel', 'accounts')
+
     context = {
         'account': account,
         'account_owner': account_owner,
         'operations': operations,
-        'operation_form': OperationForm(account=account, user=user) if account else None,
-        'operation_form_action': reverse('maintabs:add_operation'),
-        'operation_is_edit': False,
-        'operation_id': None,
-        'open_operation_modal': False,
+
+        'operation_form': operation_form_obj,
+        'operation_form_action': operation_form_action,
+        'operation_is_edit': operation_is_edit,
+        'operation_id': operation_id,
+        'open_operation_modal': open_operation_modal,
+        'next_url': next_url,
+
         'category_subcategories_json': get_category_subcategories_json(),
         'goal_category_ids_json': get_goal_category_ids_json(),
+        'income_category_ids_json': get_income_category_ids_json(),
+
         'category_form': CategoryCreateForm(),
         'open_category_modal': False,
+
+        'filter_users': filter_users,
+        'filter_containers': filter_containers,
+        'filter_categories': filter_categories,
+        'filter_selected_users': selected_users,
+        'filter_selected_containers': selected_containers,
+        'filter_selected_categories': selected_categories,
+        'filter_amount_min': amount_min,
+        'filter_amount_max': amount_max,
+
+        'period_key': period_key,
+        'filter_date_from': filter_date_from,
+        'filter_date_to': filter_date_to,
+        'filter_date_error': filter_date_error,
     }
     context.update(get_sidebar_context(user, panel))
     return render(request, 'maintabs/dashboard.html', context)
@@ -561,42 +732,6 @@ def delete_container(request, pk):
     account = user.account
     next_url = request.POST.get('next') or reverse('maintabs:dashboard')
 
-    container = get_object_or_404(MoneyContainer, pk=pk, account=account)
-
-    # владелец счёта может удалять любой контейнер,
-    # участник — только свой
-    if user.account_type == User.MEMBER and container.owner_id != user.id:
-        messages.error(request, 'Вы можете удалять только свои счета.')
-        return redirect(next_url)
-
-    name = container.name
-    owner_username = container.owner.username
-
-    container.delete()
-
-    Notification.objects.create(
-        account=account,
-        user=user,
-        kind=Notification.KIND_CONTAINER_DELETED,
-        message=f'Удалён счёт "{name}", владелец: {owner_username}.',
-    )
-
-    messages.success(request, 'Счёт удалён.')
-    return redirect(next_url)
-
-@login_required
-def delete_container(request, pk):
-    user = request.user
-
-    if request.method != 'POST':
-        return redirect('maintabs:dashboard')
-
-    if user_needs_account(user) or user.account is None:
-        return redirect('maintabs:join_account')
-
-    account = user.account
-    next_url = request.POST.get('next') or reverse('maintabs:dashboard')
-
     if user.account_type != User.OWNER:
         messages.error(request, 'Удалять счета может только владелец счёта.')
         return redirect(next_url)
@@ -681,39 +816,122 @@ def add_operation(request):
             op.goal.save(update_fields=['current_amount'])
         return redirect(next_url)
 
-    # Ошибка — остаёмся на той же странице, открываем модалку
-    if user.account_type == User.OWNER:
-        account = ensure_owner_account(user)
-    else:
-        account = user.account
-    account_owner = account.owner if account else None
+    # Ошибка: восстанавливаем фильтры из next_url
+    params = params_from_next_url(next_url)
 
-    today = timezone.localdate()
-    first_day = today.replace(day=1)
-    operations = Operation.objects.filter(
+    panel = params.get('panel', 'accounts')
+    amount_min = params.get('min', '').strip()
+    amount_max = params.get('max', '').strip()
+    period_key = params.get('range', 'month')
+    filter_date_from = params.get('from', '').strip()
+    filter_date_to = params.get('to', '').strip()
+    filter_date_error = False
+
+    # варианты для фильтра
+    filter_users = list(User.objects.filter(account=account).order_by('username'))
+    filter_containers = list(MoneyContainer.objects.filter(account=account, is_active=True).order_by('name'))
+    filter_categories = list(Category.objects.filter(parent__isnull=True).order_by('name'))
+
+    # базовый период (как в dashboard — сейчас month/7/14/30)
+    now = timezone.localtime()
+    end_dt = timezone.now()
+
+    if period_key in ('30', '14', '7'):
+        start_dt = now - timedelta(days=int(period_key))
+    else:
+        period_key = 'month'
+        first_day = now.date().replace(day=1)
+        start_dt = timezone.make_aware(
+            datetime.combine(first_day, time.min),
+            timezone.get_current_timezone(),
+        )
+
+    qs = Operation.objects.filter(
         account=account,
-        datetime__date__gte=first_day,
-        datetime__date__lte=today,
+        datetime__gte=start_dt,
+        datetime__lte=end_dt,
     ).select_related('container', 'category', 'subcategory', 'user', 'goal')
 
-    panel = request.GET.get('panel', 'accounts')
+    # пользователи
+    selected_users = set()
+    u_ids = params.getlist('u')
+    try:
+        u_ids_int = [int(x) for x in u_ids]
+    except ValueError:
+        u_ids_int = []
+    if u_ids_int:
+        qs = qs.filter(user_id__in=u_ids_int)
+        selected_users = set(u_ids_int)
+
+    # счета
+    selected_containers = set()
+    c_ids = params.getlist('c')
+    try:
+        c_ids_int = [int(x) for x in c_ids]
+    except ValueError:
+        c_ids_int = []
+    if c_ids_int:
+        qs = qs.filter(container_id__in=c_ids_int)
+        selected_containers = set(c_ids_int)
+
+    # категории
+    selected_categories = set()
+    cat_ids = params.getlist('cat')
+    try:
+        cat_ids_int = [int(x) for x in cat_ids]
+    except ValueError:
+        cat_ids_int = []
+    if cat_ids_int:
+        qs = qs.filter(category_id__in=cat_ids_int)
+        selected_categories = set(cat_ids_int)
+
+    # сумма от/до
+    if amount_min:
+        try:
+            qs = qs.filter(amount__gte=Decimal(amount_min.replace(',', '.')))
+        except (InvalidOperation, ValueError):
+            amount_min = ''
+    if amount_max:
+        try:
+            qs = qs.filter(amount__lte=Decimal(amount_max.replace(',', '.')))
+        except (InvalidOperation, ValueError):
+            amount_max = ''
+
+    account_owner = account.owner if account else None
 
     context = {
         'account': account,
         'account_owner': account_owner,
-        'operations': operations,
+        'operations': qs,
+
         'operation_form': form,
         'operation_form_action': reverse('maintabs:add_operation'),
         'operation_is_edit': False,
         'operation_id': None,
         'open_operation_modal': True,
+
         'category_subcategories_json': get_category_subcategories_json(),
         'goal_category_ids_json': get_goal_category_ids_json(),
+        'income_category_ids_json': get_income_category_ids_json(),
+
         'category_form': CategoryCreateForm(),
         'open_category_modal': False,
+
+        'filter_users': filter_users,
+        'filter_containers': filter_containers,
+        'filter_categories': filter_categories,
+        'filter_selected_users': selected_users,
+        'filter_selected_containers': selected_containers,
+        'filter_selected_categories': selected_categories,
+        'filter_amount_min': amount_min,
+        'filter_amount_max': amount_max,
+
+        'period_key': period_key,
+        'filter_date_from': filter_date_from,
+        'filter_date_to': filter_date_to,
+        'filter_date_error': filter_date_error,
     }
     context.update(get_sidebar_context(user, panel))
-
     return render(request, 'maintabs/dashboard.html', context)
 
 @login_required
@@ -725,12 +943,30 @@ def edit_operation(request, pk):
 
     account = user.account
 
+    # next_url нужен уже на GET (чтобы не сбрасывать фильтры/период)
+    next_url = (
+        request.GET.get('next', '').strip()
+        or request.POST.get('next', '').strip()
+        or request.session.get('dashboard_url', '')
+        or reverse('maintabs:dashboard')
+    )
+    params = params_from_next_url(next_url)
+
+    panel = params.get('panel', 'accounts')
+    amount_min = params.get('min', '').strip()
+    amount_max = params.get('max', '').strip()
+    period_key = params.get('range', 'month')
+
+    filter_date_from = params.get('from', '').strip()
+    filter_date_to = params.get('to', '').strip()
+    filter_date_error = False
+
     op = Operation.objects.filter(pk=pk, account=account).first()
     if op is None:
-        return redirect('maintabs:dashboard')
-    # Права: владелец может всё, участник — только свои операции
+        return redirect(next_url)
+
     if user.account_type == User.MEMBER and op.user_id != user.id:
-        return redirect('maintabs:dashboard')
+        return redirect(next_url)
 
     if request.method == 'POST':
         old_amount = op.amount
@@ -742,53 +978,120 @@ def edit_operation(request, pk):
         if form.is_valid():
             new_op = form.save()
 
-            # Откатываем старую цель
             if old_goal and old_category.is_goal_category:
                 old_goal.current_amount -= old_amount
                 old_goal.save(update_fields=['current_amount'])
 
-            # Применяем новую цель
             if new_op.goal and new_op.category.is_goal_category:
                 new_op.goal.current_amount += new_op.amount
                 new_op.goal.save(update_fields=['current_amount'])
 
-            return redirect('maintabs:dashboard')
+            return redirect(next_url)
     else:
         form = OperationForm(instance=op, account=account, user=user)
 
-    # GET или невалидный POST — показываем dashboard с открытой модалкой
-    if user.account_type == User.OWNER:
-        account = ensure_owner_account(user)
-    else:
-        account = user.account
-    account_owner = account.owner if account else None
+    # список операций на фоне модалки редактирования (по текущему period_key)
+    now = timezone.localtime()
+    end_dt = timezone.now()
 
-    today = timezone.localdate()
-    first_day = today.replace(day=1)
+    if period_key in ('30', '14', '7'):
+        start_dt = now - timedelta(days=int(period_key))
+    else:
+        period_key = 'month'
+        first_day = now.date().replace(day=1)
+        start_dt = timezone.make_aware(
+            datetime.combine(first_day, time.min),
+            timezone.get_current_timezone(),
+        )
+
     operations = Operation.objects.filter(
         account=account,
-        datetime__date__gte=first_day,
-        datetime__date__lte=today,
+        datetime__gte=start_dt,
+        datetime__lte=end_dt,
     ).select_related('container', 'category', 'subcategory', 'user', 'goal')
 
-    panel = request.GET.get('panel', 'accounts')
+    # варианты для фильтра (чтобы чекбоксы/поля не сбрасывались)
+    filter_users = list(User.objects.filter(account=account).order_by('username'))
+    filter_containers = list(MoneyContainer.objects.filter(account=account, is_active=True).order_by('name'))
+    filter_categories = list(Category.objects.filter(parent__isnull=True).order_by('name'))
+
+    selected_users = set()
+    u_ids = params.getlist('u')
+    try:
+        u_ids_int = [int(x) for x in u_ids]
+    except ValueError:
+        u_ids_int = []
+    if u_ids_int:
+        operations = operations.filter(user_id__in=u_ids_int)
+        selected_users = set(u_ids_int)
+
+    selected_containers = set()
+    c_ids = params.getlist('c')
+    try:
+        c_ids_int = [int(x) for x in c_ids]
+    except ValueError:
+        c_ids_int = []
+    if c_ids_int:
+        operations = operations.filter(container_id__in=c_ids_int)
+        selected_containers = set(c_ids_int)
+
+    selected_categories = set()
+    cat_ids = params.getlist('cat')
+    try:
+        cat_ids_int = [int(x) for x in cat_ids]
+    except ValueError:
+        cat_ids_int = []
+    if cat_ids_int:
+        operations = operations.filter(category_id__in=cat_ids_int)
+        selected_categories = set(cat_ids_int)
+
+    if amount_min:
+        try:
+            operations = operations.filter(amount__gte=Decimal(amount_min.replace(',', '.')))
+        except (InvalidOperation, ValueError):
+            amount_min = ''
+    if amount_max:
+        try:
+            operations = operations.filter(amount__lte=Decimal(amount_max.replace(',', '.')))
+        except (InvalidOperation, ValueError):
+            amount_max = ''
+
+    account_owner = account.owner if account else None
 
     context = {
         'account': account,
         'account_owner': account_owner,
         'operations': operations,
+
         'operation_form': form,
         'operation_form_action': reverse('maintabs:edit_operation', args=[op.pk]),
         'operation_is_edit': True,
         'operation_id': op.pk,
         'open_operation_modal': True,
+        'next_url': next_url,
+
         'category_subcategories_json': get_category_subcategories_json(),
         'goal_category_ids_json': get_goal_category_ids_json(),
+        'income_category_ids_json': get_income_category_ids_json(),
+
         'category_form': CategoryCreateForm(),
         'open_category_modal': False,
+
+        'filter_users': filter_users,
+        'filter_containers': filter_containers,
+        'filter_categories': filter_categories,
+        'filter_selected_users': selected_users,
+        'filter_selected_containers': selected_containers,
+        'filter_selected_categories': selected_categories,
+        'filter_amount_min': amount_min,
+        'filter_amount_max': amount_max,
+
+        'period_key': period_key,
+        'filter_date_from': filter_date_from,
+        'filter_date_to': filter_date_to,
+        'filter_date_error': filter_date_error,
     }
     context.update(get_sidebar_context(user, panel))
-
     return render(request, 'maintabs/dashboard.html', context)
 
 @login_required
@@ -847,8 +1150,14 @@ def add_category(request):
         datetime__date__lte=today,
     ).select_related('container', 'category', 'subcategory', 'user', 'goal')
 
-    panel = request.GET.get('panel', 'accounts')
-
+    
+    params = params_from_next_url(next_url)
+    period_key = params.get('range', 'month')
+    filter_date_from = params.get('from', '').strip()
+    filter_date_to = params.get('to', '').strip()
+    filter_date_error = False
+    panel = params.get('panel', 'accounts')
+    
     context = {
         'account': account,
         'account_owner': account_owner,
@@ -861,6 +1170,10 @@ def add_category(request):
         'category_subcategories_json': get_category_subcategories_json(),
         'category_form': form,
         'open_category_modal': True,
+        'period_key': period_key,
+        'filter_date_from': filter_date_from,
+        'filter_date_to': filter_date_to,
+        'filter_date_error': filter_date_error,
     }
     context.update(get_sidebar_context(user, panel))
 
@@ -869,3 +1182,17 @@ def add_category(request):
 def get_goal_category_ids_json():
     ids = list(Category.objects.filter(is_goal_category=True, parent__isnull=True).values_list('id', flat=True))
     return json.dumps(ids)
+
+def get_income_category_ids_json():
+    ids = list(Category.objects.filter(type=Category.TYPE_INCOME, parent__isnull=True).values_list('id', flat=True))
+    return json.dumps(ids)
+
+def params_from_next_url(next_url: str) -> QueryDict:
+    qd = QueryDict('', mutable=True)
+    if not next_url:
+        return qd
+    parsed = urlparse(next_url)
+    data = parse_qs(parsed.query, keep_blank_values=True)
+    for k, vals in data.items():
+        qd.setlist(k, vals)
+    return qd
