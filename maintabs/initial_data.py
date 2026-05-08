@@ -1,6 +1,5 @@
 from .models import Category
 
-
 DEFAULT_CATEGORIES = {
     # (Название, тип, is_goal_category): [подкатегории...]
     ('Доход', Category.TYPE_INCOME, False): [
@@ -75,10 +74,6 @@ DEFAULT_CATEGORIES = {
 
 
 def create_default_categories():
-    """
-    Однократно создаёт набор предустановленных категорий и подкатегорий.
-    Повторный вызов не создаёт дубли, а лишь подправляет флаги.
-    """
     for (name, type_, is_goal), subnames in DEFAULT_CATEGORIES.items():
         parent, created = Category.objects.get_or_create(
             name=name,

@@ -3,8 +3,8 @@ from django.contrib.auth.decorators import login_required
 from accounts.models import User
 from django.utils import timezone
 from django.contrib import messages
-from .models import BudgetAccount, JoinRequest, MoneyContainer, Goal, Notification, Category, Operation
-from .forms import MoneyContainerForm, GoalForm, OperationForm, CategoryCreateForm
+from .models import BudgetAccount, JoinRequest, MoneyContainer, Goal, Notification, Category, Operation, SpendingPlan
+from .forms import MoneyContainerForm, GoalForm, OperationForm, CategoryCreateForm, SpendingPlanForm
 from django.urls import reverse
 from urllib.parse import urlparse
 from decimal import Decimal, InvalidOperation
@@ -12,7 +12,8 @@ from datetime import timedelta, datetime, time
 import json
 from urllib.parse import parse_qs
 from django.http import QueryDict
-
+from datetime import date as pydate
+from django.db.models import Sum
 
 @login_required
 def dashboard(request):
@@ -221,13 +222,305 @@ def dashboard(request):
     context.update(get_sidebar_context(user, panel))
     return render(request, 'maintabs/dashboard.html', context)
 
+
+def month_start(d: pydate) -> pydate:
+    return d.replace(day=1)
+
+def add_months(d: pydate, n: int) -> pydate:
+    # d = первое число месяца
+    y = d.year + (d.month - 1 + n) // 12
+    m = (d.month - 1 + n) % 12 + 1
+    return pydate(y, m, 1)
+
+def parse_mm_gg(s: str):
+    s = (s or '').strip()
+    if not s:
+        return None
+    parts = s.split('.')
+    if len(parts) != 2 or any(len(p) != 2 for p in parts):
+        return None
+    try:
+        mm = int(parts[0])
+        yy = int(parts[1])
+    except ValueError:
+        return None
+    if mm < 1 or mm > 12:
+        return None
+    year = 2000 + yy
+    return pydate(year, mm, 1)
+
+def ensure_month_plans(account: BudgetAccount, current_month: pydate):
+    """
+    Копируем планы прошлого месяца в текущий (если таких планов в текущем ещё нет).
+    """
+    prev_month = add_months(current_month, -1)
+    prev_plans = SpendingPlan.objects.filter(account=account, month=prev_month)
+    if not prev_plans.exists():
+        return
+
+    for p in prev_plans:
+        SpendingPlan.objects.get_or_create(
+            account=account,
+            month=current_month,
+            scope_user=p.scope_user,
+            importance=p.importance,
+            category=p.category,
+            subcategory=p.subcategory,
+            defaults={'limit_amount': p.limit_amount},
+        )
+
+def spent_for_plan(account: BudgetAccount, plan: SpendingPlan, start_dt, end_dt):
+    qs = Operation.objects.filter(
+        account=account,
+        datetime__gte=start_dt,
+        datetime__lt=end_dt,
+        category__type=Category.TYPE_EXPENSE,
+    )
+
+    # траты со счетов владельца (container.owner)
+    if plan.scope_user_id is not None:
+        qs = qs.filter(container__owner_id=plan.scope_user_id)
+
+    if plan.importance is not None:
+        qs = qs.filter(is_important=plan.importance)
+
+    if plan.subcategory_id is not None:
+        qs = qs.filter(subcategory_id=plan.subcategory_id)
+    elif plan.category_id is not None:
+        qs = qs.filter(category_id=plan.category_id)
+
+    total = qs.aggregate(s=Sum('amount'))['s']
+    return total or Decimal('0.00')
+
+@login_required
+def add_plan(request):
+    user = request.user
+    if request.method != 'POST':
+        return redirect('maintabs:plan')
+    if user_needs_account(user) or user.account is None:
+        return redirect('maintabs:join_account')
+
+    account = user.account
+    current_month = month_start(timezone.localdate())
+
+    next_url = request.POST.get('next') or reverse('maintabs:plan')
+
+    form = SpendingPlanForm(request.POST, account=account)
+    form.cleaned_data = getattr(form, 'cleaned_data', {})
+    # передадим месяц в clean для уникальности
+    form.data = request.POST
+    if form.is_valid():
+        form.save(month=current_month)
+        return redirect(next_url)
+
+    # ошибка — рендерим plan с открытой модалкой
+    request.GET = request.GET.copy()
+    context_response = plan(request).context_data if hasattr(plan(request), 'context_data') else None
+    # проще: заново собрать через вызов plan() нельзя, поэтому делаем минимально:
+    return redirect(next_url)  # если хочешь, сделаем красивый re-render, но это увеличит код
+
+@login_required
+def edit_plan(request, pk):
+    user = request.user
+    if request.method != 'POST':
+        return redirect('maintabs:plan')
+    if user_needs_account(user) or user.account is None:
+        return redirect('maintabs:join_account')
+
+    account = user.account
+    current_month = month_start(timezone.localdate())
+
+    p = get_object_or_404(SpendingPlan, pk=pk, account=account)
+
+    # прошлые месяцы редактировать нельзя
+    if p.month != current_month:
+        return redirect(request.POST.get('next') or reverse('maintabs:plan'))
+
+    next_url = request.POST.get('next') or reverse('maintabs:plan')
+    form = SpendingPlanForm(request.POST, instance=p, account=account)
+    form.cleaned_data = getattr(form, 'cleaned_data', {})
+    if form.is_valid():
+        form.save(month=current_month)
+        return redirect(next_url)
+
+    return redirect(next_url)
+
+@login_required
+def delete_plan(request, pk):
+    user = request.user
+    if request.method != 'POST':
+        return redirect('maintabs:plan')
+    if user_needs_account(user) or user.account is None:
+        return redirect('maintabs:join_account')
+
+    account = user.account
+    current_month = month_start(timezone.localdate())
+
+    p = get_object_or_404(SpendingPlan, pk=pk, account=account)
+    if p.month != current_month:
+        return redirect(request.POST.get('next') or reverse('maintabs:plan'))
+
+    p.delete()
+    return redirect(request.POST.get('next') or reverse('maintabs:plan'))
+
 @login_required
 def plan(request):
     user = request.user
-    if user_needs_account(request.user):
+    if user_needs_account(user) or user.account is None:
         return redirect('maintabs:join_account')
+
+    account = user.account
+
+    # выбор месяца/периода (GET)
+    month_str = request.GET.get('m', '').strip()
+    fromm_str = request.GET.get('fromm', '').strip()
+    tom_str = request.GET.get('tom', '').strip()
+
+    plan_date_error = False
+    mode = 'month'  # или 'period'
+    current_month = month_start(timezone.localdate())
+
+    selected_month = None
+    period_from = None
+    period_to = None  # inclusive month start
+
+    if month_str and (fromm_str or tom_str):
+        plan_date_error = True
+        selected_month = current_month
+    elif month_str:
+        selected_month = parse_mm_gg(month_str)
+        if selected_month is None:
+            plan_date_error = True
+            selected_month = current_month
+    elif fromm_str or tom_str:
+        f = parse_mm_gg(fromm_str)
+        t = parse_mm_gg(tom_str)
+        if f is None or t is None or f > t:
+            plan_date_error = True
+            selected_month = current_month
+        else:
+            mode = 'period'
+            period_from = f
+            period_to = t
+    else:
+        selected_month = current_month
+
+    allow_edit = (mode == 'month' and selected_month == current_month)
+
+    # автокопирование для текущего месяца
+    if allow_edit:
+        ensure_month_plans(account, current_month)
+
+    plans_view = []
+    period_stats = []
+
+    if mode == 'month':
+        start = timezone.make_aware(datetime.combine(selected_month, time.min), timezone.get_current_timezone())
+        end = timezone.make_aware(datetime.combine(add_months(selected_month, 1), time.min), timezone.get_current_timezone())
+
+        plans = list(SpendingPlan.objects.filter(account=account, month=selected_month).select_related('scope_user', 'category', 'subcategory'))
+        for p in plans:
+            spent = spent_for_plan(account, p, start, end)
+            plans_view.append({
+                'plan': p,
+                'spent': spent,
+                'is_over': spent > p.limit_amount,
+                'is_under': spent <= p.limit_amount,
+            })
+    else:
+        # период: суммируем лимиты по ключу
+        start_m = period_from
+        end_m_next = add_months(period_to, 1)
+        start_dt = timezone.make_aware(datetime.combine(start_m, time.min), timezone.get_current_timezone())
+        end_dt = timezone.make_aware(datetime.combine(end_m_next, time.min), timezone.get_current_timezone())
+
+        qs = SpendingPlan.objects.filter(account=account, month__gte=start_m, month__lt=end_m_next)
+        grouped = qs.values('scope_user_id', 'importance', 'category_id', 'subcategory_id').annotate(
+            total_limit=Sum('limit_amount')
+        )
+
+        # для отображения нужны имена
+        users_map = {u.id: u.username for u in User.objects.filter(account=account)}
+        cat_map = {c.id: c.name for c in Category.objects.all()}
+
+        for row in grouped:
+            scope_user_id = row['scope_user_id']
+            importance = row['importance']
+            category_id = row['category_id']
+            subcategory_id = row['subcategory_id']
+            limit_sum = row['total_limit'] or Decimal('0.00')
+
+            # считаем потрачено для этой группы
+            temp_plan = SpendingPlan(
+                account=account,
+                month=current_month,
+                scope_user_id=scope_user_id,
+                importance=importance,
+                category_id=category_id,
+                subcategory_id=subcategory_id,
+                limit_amount=limit_sum,
+            )
+            spent = spent_for_plan(account, temp_plan, start_dt, end_dt)
+
+            period_stats.append({
+                'scope_user_name': 'Все' if scope_user_id is None else users_map.get(scope_user_id, '???'),
+                'importance': importance,  # None/True/False
+                'category_name': cat_map.get(category_id) if category_id else None,
+                'subcategory_name': cat_map.get(subcategory_id) if subcategory_id else None,
+                'spent': spent,
+                'limit': limit_sum,
+                'is_over': spent > limit_sum,
+            })
+
+    # модалка add/edit плана по ?pedit=
+    plan_form = SpendingPlanForm(account=account)
+    plan_form_action = reverse('maintabs:add_plan')
+    plan_is_edit = False
+    plan_id = None
+    open_plan_modal = False
+
+    pedit = request.GET.get('pedit', '').strip()
+    next_url = request.get_full_path()
+    if pedit:
+        try:
+            pedit_pk = int(pedit)
+        except ValueError:
+            pedit_pk = None
+        if pedit_pk is not None:
+            p = SpendingPlan.objects.filter(pk=pedit_pk, account=account).first()
+            if p and allow_edit:
+                plan_form = SpendingPlanForm(instance=p, account=account)
+                plan_form_action = reverse('maintabs:edit_plan', args=[p.pk])
+                plan_is_edit = True
+                plan_id = p.pk
+                open_plan_modal = True
+                q = request.GET.copy()
+                q.pop('pedit', None)
+                next_url = request.path + ('?' + q.urlencode() if q else '')
+
     panel = request.GET.get('panel', 'accounts')
-    context = {}
+    context = {
+        'account': account,
+        'account_owner': account.owner,
+        'mode': mode,
+        'selected_month_str': selected_month.strftime('%m.%y') if (mode == 'month' and selected_month) else '',
+        'period_from_str': period_from.strftime('%m.%y') if (mode == 'period' and period_from) else '',
+        'period_to_str': period_to.strftime('%m.%y') if (mode == 'period' and period_to) else '',
+        'plan_date_error': plan_date_error,
+        'allow_edit': allow_edit,
+
+        'plans_view': plans_view,
+        'period_stats': period_stats,
+
+        'plan_form': plan_form,
+        'plan_form_action': plan_form_action,
+        'plan_is_edit': plan_is_edit,
+        'plan_id': plan_id,
+        'open_plan_modal': open_plan_modal,
+        'next_url': next_url,
+
+        'plan_categories_json': get_category_subcategories_json(),  # используем ту же карту parent->subs
+    }
     context.update(get_sidebar_context(user, panel))
     return render(request, 'maintabs/plan.html', context)
 

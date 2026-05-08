@@ -5,7 +5,6 @@ app_name = 'maintabs'
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
-    path('plan/', views.plan, name='plan'),
     path('reports/', views.reports, name='reports'),
     path('notifications/', views.notifications, name='notifications'),
     path('join/', views.join_account, name='join_account'),
@@ -30,4 +29,8 @@ urlpatterns = [
 
     path('categories/add/', views.add_category, name='add_category'),
     
+    path('plans/', views.plan, name='plan'),
+    path('plans/add/', views.add_plan, name='add_plan'),
+    path('plans/<int:pk>/edit/', views.edit_plan, name='edit_plan'),
+    path('plans/<int:pk>/delete/', views.delete_plan, name='delete_plan'),
 ]

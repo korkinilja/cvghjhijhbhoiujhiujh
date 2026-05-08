@@ -3,8 +3,9 @@ from accounts.models import User
 from .models import MoneyContainer, Goal
 from django import forms
 from accounts.models import User
-from .models import MoneyContainer, Goal, Category, Operation
+from .models import MoneyContainer, Goal, Category, Operation, SpendingPlan
 from django.utils import timezone
+from decimal import Decimal, InvalidOperation
 
 class MoneyContainerForm(forms.ModelForm):
     class Meta:
@@ -442,3 +443,150 @@ class CategoryCreateForm(forms.Form):
             created.append(cat)
 
         return created
+    
+class SpendingPlanForm(forms.ModelForm):
+    """
+    Создание/редактирование плана на текущий месяц.
+    """
+    scope_choice = forms.ChoiceField(
+        label='Чьи счета учитывать?',
+        choices=[],
+        widget=forms.RadioSelect,
+    )
+
+    importance_choice = forms.ChoiceField(
+        label='Важность',
+        required=False,
+        choices=[
+            ('', 'Не указывать'),
+            ('necessary', 'Необходимая'),
+            ('free', 'Свободная'),
+        ],
+        widget=forms.RadioSelect,
+    )
+
+    class Meta:
+        model = SpendingPlan
+        fields = ['limit_amount', 'category', 'subcategory']
+        labels = {
+            'limit_amount': 'Введите предельную сумму трат',
+            'category': 'Категория',
+            'subcategory': 'Подкатегория',
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.account = kwargs.pop('account', None)
+        super().__init__(*args, **kwargs)
+
+        # лимит
+        self.fields['limit_amount'].widget = forms.NumberInput(attrs={'step': '0.01'})
+
+        # scope: "все" + пользователи аккаунта
+        users = []
+        if self.account is not None:
+            users = list(User.objects.filter(account=self.account).order_by('username'))
+
+        choices = [('all', 'Все')]
+        for u in users:
+            choices.append((f'user:{u.id}', u.username))
+        self.fields['scope_choice'].choices = choices
+
+        # категории только расходные верхнего уровня (доход не нужен)
+        self.fields['category'].queryset = Category.objects.filter(
+            parent__isnull=True,
+            type=Category.TYPE_EXPENSE,
+        ).order_by('name')
+
+        # подкатегории расходные
+        self.fields['subcategory'].queryset = Category.objects.filter(
+            parent__isnull=False,
+            type=Category.TYPE_EXPENSE,
+        ).order_by('parent__name', 'name')
+        self.fields['subcategory'].required = False
+
+        # initial при редактировании
+        if self.instance and self.instance.pk:
+            if self.instance.scope_user_id is None:
+                self.fields['scope_choice'].initial = 'all'
+            else:
+                self.fields['scope_choice'].initial = f'user:{self.instance.scope_user_id}'
+
+            if self.instance.importance is None:
+                self.fields['importance_choice'].initial = ''
+            elif self.instance.importance is True:
+                self.fields['importance_choice'].initial = 'necessary'
+            else:
+                self.fields['importance_choice'].initial = 'free'
+
+    def clean_limit_amount(self):
+        v = self.cleaned_data.get('limit_amount')
+        if v is None:
+            raise forms.ValidationError('Введите лимит.')
+        if v <= 0:
+            raise forms.ValidationError('Лимит должен быть больше 0.')
+        return v
+
+    def clean(self):
+        cleaned = super().clean()
+
+        # scope_user
+        scope = cleaned.get('scope_choice')
+        scope_user = None
+        if scope == 'all':
+            scope_user = None
+        elif scope and scope.startswith('user:'):
+            try:
+                uid = int(scope.split(':', 1)[1])
+            except ValueError:
+                self.add_error('scope_choice', 'Некорректный выбор пользователя.')
+                return cleaned
+            scope_user = User.objects.filter(id=uid, account=self.account).first()
+            if scope_user is None:
+                self.add_error('scope_choice', 'Некорректный выбор пользователя.')
+                return cleaned
+        else:
+            self.add_error('scope_choice', 'Выберите “Все” или пользователя.')
+            return cleaned
+
+        cleaned['scope_user_obj'] = scope_user
+
+        # importance -> importance (None/True/False)
+        imp = cleaned.get('importance_choice', '')
+        if imp == '':
+            cleaned['importance_value'] = None
+        elif imp == 'necessary':
+            cleaned['importance_value'] = True
+        elif imp == 'free':
+            cleaned['importance_value'] = False
+        else:
+            self.add_error('importance_choice', 'Некорректный выбор важности.')
+            return cleaned
+
+        # уникальность (ключ плана)
+        if self.account is not None and cleaned.get('limit_amount') is not None:
+            month = cleaned.get('month_for_check')  # зададим во view
+            if month:
+                qs = SpendingPlan.objects.filter(
+                    account=self.account,
+                    month=month,
+                    scope_user=scope_user,
+                    importance=cleaned['importance_value'],
+                    category=cleaned.get('category'),
+                    subcategory=cleaned.get('subcategory'),
+                )
+                if self.instance and self.instance.pk:
+                    qs = qs.exclude(pk=self.instance.pk)
+                if qs.exists():
+                    raise forms.ValidationError('Такой план уже существует.')
+
+        return cleaned
+
+    def save(self, commit=True, month=None):
+        plan = super().save(commit=False)
+        plan.account = self.account
+        plan.month = month
+        plan.scope_user = self.cleaned_data.get('scope_user_obj')
+        plan.importance = self.cleaned_data.get('importance_value')
+        if commit:
+            plan.save()
+        return plan

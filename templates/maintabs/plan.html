@@ -1,10 +1,276 @@
 {% extends "maintabs/base_maintabs.html" %}
+{% load static %}
+{% load money_filters %}
 
 {% block title %}План{% endblock %}
 
 {% block page_content %}
 <div class="main-card">
-    <h1>План</h1>
-    <p>Здесь будет планирование бюджета и целей.</p>
+    <div class="main-card-header">
+        <h1>План</h1>
+
+        <div class="main-card-header-actions">
+            {% if allow_edit %}
+                <a href="#add-plan-modal" class="circle-action-btn" title="Добавить план">
+                    <img src="{% static 'img/plus-icon.svg' %}" alt="Добавить">
+                </a>
+            {% endif %}
+
+            <button type="button" class="circle-action-btn" id="planRangeToggle" title="Период">
+                <img src="{% static 'img/calendar-icon.svg' %}" alt="Период">
+            </button>
+
+            <div class="range-popover" id="planRangePopover">
+                <form method="get" action="{% url 'maintabs:plan' %}">
+                    <div class="range-title">Отобразить месяц:</div>
+                    <div class="range-dates" style="grid-template-columns: 1fr auto;">
+                        <input type="text" name="m" placeholder="ММ.ГГ" value="{{ selected_month_str }}" maxlength="5">
+                        <button type="submit" class="btn-primary range-ok">OK</button>
+                    </div>
+
+                    <div class="range-title">Отобразить период:</div>
+                    {% if plan_date_error %}
+                        <div class="error-text" style="margin-bottom: 8px;">Некорректные даты</div>
+                    {% endif %}
+                    <div class="range-dates">
+                        <input type="text" name="fromm" placeholder="ММ.ГГ" value="{{ period_from_str }}" maxlength="5">
+                        <span class="range-dash">-</span>
+                        <input type="text" name="tom" placeholder="ММ.ГГ" value="{{ period_to_str }}" maxlength="5">
+                        <button type="submit" class="btn-primary range-ok">OK</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if mode == 'month' %}
+        {% if plans_view %}
+            <div class="notif-block">
+                <h2 style="margin-top:0; font-size:18px;">{{ selected_month_str }}</h2>
+
+                <ul class="plans-list">
+                    {% for item in plans_view %}
+                        {% with p=item.plan %}
+                        <li class="plan-item">
+                            <div class="plan-main">
+                                <div class="plan-top">
+                                    {% if p.importance is not None %}
+                                        <span class="plan-importance">
+                                            {% if p.importance %}Необходимая{% else %}Свободная{% endif %}
+                                        </span>
+                                    {% endif %}
+                                    <span class="plan-scope">
+                                        {% if p.scope_user %}{{ p.scope_user.username }}{% else %}Все{% endif %}
+                                    </span>
+                                    {% if p.subcategory %}
+                                        <span class="plan-cat">, {{ p.subcategory.name }}</span>
+                                    {% elif p.category %}
+                                        <span class="plan-cat">, {{ p.category.name }}</span>
+                                    {% else %}
+                                        <span class="plan-cat">, Всего траты</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="plan-amounts">
+                                    <span class="{% if item.is_over %}plan-spent-over{% else %}plan-spent-under{% endif %}">
+                                        {{ item.spent|ru_money }}
+                                    </span>
+                                    <span class="plan-slash"> / </span>
+                                    <span class="plan-limit">{{ p.limit_amount|ru_money }}</span>
+                                </div>
+                            </div>
+
+                            {% if allow_edit %}
+                                <div class="plan-actions">
+                                    <form method="get" action="{% url 'maintabs:plan' %}">
+                                        {% for key, values in request.GET.lists %}
+                                            {% if key != 'pedit' %}
+                                                {% for v in values %}
+                                                    <input type="hidden" name="{{ key }}" value="{{ v }}">
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        <input type="hidden" name="pedit" value="{{ p.pk }}">
+                                        <button type="submit" class="operation-edit-btn" title="Редактировать">
+                                            <img src="{% static 'img/pen-icon.svg' %}" alt="Редактировать">
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </li>
+                        {% endwith %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <p>Планов нет.</p>
+        {% endif %}
+    {% else %}
+        {% if period_stats %}
+            <div class="notif-block">
+                <h2 style="margin-top:0; font-size:18px;">Период {{ period_from_str }} - {{ period_to_str }}</h2>
+
+                <ul class="plans-list">
+                    {% for r in period_stats %}
+                        <li class="plan-item">
+                            <div class="plan-main">
+                                <div class="plan-top">
+                                    {% if r.importance is not None %}
+                                        <span class="plan-importance">
+                                            {% if r.importance %}Необходимая{% else %}Свободная{% endif %}
+                                        </span>
+                                    {% endif %}
+                                    <span class="plan-scope">{{ r.scope_user_name }}</span>
+                                    {% if r.subcategory_name %}
+                                        <span class="plan-cat">, {{ r.subcategory_name }}</span>
+                                    {% elif r.category_name %}
+                                        <span class="plan-cat">, {{ r.category_name }}</span>
+                                    {% else %}
+                                        <span class="plan-cat">, Всего траты</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="plan-amounts">
+                                    <span class="{% if r.is_over %}plan-spent-over{% else %}plan-spent-under{% endif %}">
+                                        {{ r.spent|ru_money }}
+                                    </span>
+                                    <span class="plan-slash"> / </span>
+                                    <span class="plan-limit">{{ r.limit|ru_money }}</span>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <p>Планов нет.</p>
+        {% endif %}
+    {% endif %}
 </div>
+
+{% if request.user.account %}
+    <div id="add-plan-modal"
+         class="modal{% if open_plan_modal %} modal-open{% endif %}">
+        <div class="modal-card">
+            <a href="{{ next_url|default:request.get_full_path }}" class="modal-close">&times;</a>
+            <h2>{% if plan_is_edit %}Редактировать план{% else %}Добавить план{% endif %}</h2>
+
+            {% if plan_form.non_field_errors %}
+                <div class="error-text">{{ plan_form.non_field_errors }}</div>
+            {% endif %}
+
+            <form id="plan-save-form" method="post" action="{{ plan_form_action }}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url|default:request.get_full_path }}">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="{{ plan_form.limit_amount.id_for_label }}">Введите предельную сумму трат</label>
+                        {{ plan_form.limit_amount }}
+                        {% if plan_form.limit_amount.errors %}
+                            <div class="error-text">{{ plan_form.limit_amount.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <div class="field-label">Чьи счета учитывать?</div>
+                        {{ plan_form.scope_choice }}
+                        {% if plan_form.scope_choice.errors %}
+                            <div class="error-text">{{ plan_form.scope_choice.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <div class="field-label">Важность</div>
+                        {{ plan_form.importance_choice }}
+                        {% if plan_form.importance_choice.errors %}
+                            <div class="error-text">{{ plan_form.importance_choice.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div></div>
+
+                    <div class="form-group">
+                        <label for="{{ plan_form.category.id_for_label }}">Категория</label>
+                        {{ plan_form.category }}
+                        {% if plan_form.category.errors %}
+                            <div class="error-text">{{ plan_form.category.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ plan_form.subcategory.id_for_label }}">Подкатегория</label>
+                        {{ plan_form.subcategory }}
+                        {% if plan_form.subcategory.errors %}
+                            <div class="error-text">{{ plan_form.subcategory.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+
+            <div class="form-actions">
+                <button type="submit" form="plan-save-form" class="btn-primary">Сохранить</button>
+
+                {% if plan_is_edit %}
+                    <form id="plan-delete-form"
+                          method="post"
+                          action="{% url 'maintabs:delete_plan' plan_id %}"
+                          style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ next_url|default:request.get_full_path }}">
+                    </form>
+                    <button type="submit" form="plan-delete-form" class="btn-danger">Удалить</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // popover периода на плане
+    var t = document.getElementById('planRangeToggle');
+    var p = document.getElementById('planRangePopover');
+    if (t && p) {
+        function close() { p.classList.remove('is-open'); }
+        t.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); p.classList.toggle('is-open'); });
+        p.addEventListener('click', function(e){ e.stopPropagation(); });
+        document.addEventListener('click', close);
+        document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    }
+
+    // маска ММ.ГГ для всех полей в popover
+    function maskMMGG(inp) {
+        if (!inp) return;
+        inp.addEventListener('input', function () {
+            var digits = inp.value.replace(/\D/g, '').slice(0, 4); // mmgg
+            var out = '';
+            if (digits.length >= 2) out += digits.slice(0,2);
+            if (digits.length >= 3) out += '.' + digits.slice(2,4);
+            inp.value = out;
+        });
+    }
+    document.querySelectorAll('#planRangePopover input[name="m"], #planRangePopover input[name="fromm"], #planRangePopover input[name="tom"]').forEach(maskMMGG);
+
+    // блокировать выбор подкатегории пока не выбрана категория
+    var cat = document.getElementById('{{ plan_form.category.id_for_label }}');
+    var sub = document.getElementById('{{ plan_form.subcategory.id_for_label }}');
+    if (cat && sub) {
+        function upd() {
+            if (!cat.value) {
+                sub.value = '';
+                sub.disabled = true;
+            } else {
+                sub.disabled = false;
+            }
+        }
+        upd();
+        cat.addEventListener('change', function () {
+            if (!cat.value) sub.value = '';
+            upd();
+        });
+    }
+});
+</script>
+
 {% endblock %}

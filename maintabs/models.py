@@ -121,10 +121,6 @@ class MoneyContainer(models.Model):
 
     @property
     def current_balance(self):
-        """
-        Текущий баланс: начальный баланс + сумма всех операций
-        (доходы плюсуются, расходы вычитаются).
-        """
         total = self.balance
         for op in self.operations.all():
             total += op.signed_amount
@@ -223,12 +219,6 @@ class Category(models.Model):
 
 
 class Operation(models.Model):
-    """
-    Операция учёта: доход или расход.
-    Тип (доход/расход) определяется через Category.type:
-    - type = income  -> доход;
-    - type = expense -> расход.
-    """
     account = models.ForeignKey(
         BudgetAccount,
         on_delete=models.CASCADE,
@@ -374,3 +364,70 @@ class Notification(models.Model):
 
     def __str__(self):
         return self.message
+    
+class SpendingPlan(models.Model):
+    account = models.ForeignKey(
+        BudgetAccount,
+        on_delete=models.CASCADE,
+        related_name='spending_plans',
+        verbose_name='Семейный счёт',
+    )
+
+    month = models.DateField(
+        'Месяц',
+        help_text='Хранится как первое число месяца',
+    )
+
+    scope_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='spending_plans_scope',
+        verbose_name='Чьи счета учитывать (NULL = все)',
+    )
+
+    limit_amount = models.DecimalField(
+        'Лимит',
+        max_digits=14,
+        decimal_places=2,
+    )
+
+    importance = models.BooleanField(
+        'Важность (NULL=не задана)',
+        null=True,
+        blank=True,
+    )
+
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='spending_plans_as_category',
+        verbose_name='Категория',
+    )
+
+    subcategory = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='spending_plans_as_subcategory',
+        verbose_name='Подкатегория',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'План расходов'
+        verbose_name_plural = 'Планы расходов'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['account', 'month', 'scope_user', 'importance', 'category', 'subcategory'],
+                name='uniq_spending_plan_key',
+            )
+        ]
+
+    def __str__(self):
+        return f'План {self.month:%Y-%m} ({self.account})'

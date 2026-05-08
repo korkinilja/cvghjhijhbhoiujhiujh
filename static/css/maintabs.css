@@ -1070,3 +1070,64 @@ body.main-page .top-bar {
     font-size: 13px;
     border-radius: 999px;
 }
+
+.plans-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+}
+
+.plan-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #24362a;
+}
+
+.plan-top {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.plan-importance {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e9f5ee;
+}
+
+.plan-scope {
+    font-size: 14px;
+    color: #e9f5ee;
+    font-weight: 600;
+}
+
+.plan-cat {
+    font-size: 14px;
+    color: #e9f5ee;
+}
+
+.plan-amounts {
+    margin-top: 6px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.plan-spent-under {
+    color: #7AA4FF;
+}
+
+.plan-spent-over {
+    color: #ff7b7b;
+}
+
+.plan-slash,
+.plan-limit {
+    color: #e9f5ee;
+}
+
+.plan-actions {
+    margin-left: 10px;
+}
