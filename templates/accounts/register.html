@@ -18,7 +18,7 @@
             {{ form.non_field_errors }}
 
             <div class="form-group">
-                <label for="{{ form.username.id_for_label }}">Логин:</label><br>
+                <label for="{{ form.username.id_for_label }}">Логин:</label>
                 {{ form.username }}
                 {% if form.username.errors %}
                     <div class="error-text">
@@ -28,7 +28,7 @@
             </div>
 
             <div class="form-group">
-                <p>{{ form.account_type.label }}:</p>
+                <div class="field-label">{{ form.account_type.label }}:</div>
                 {{ form.account_type }}
 
                 <details class="info-details">
@@ -45,7 +45,7 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.password1.id_for_label }}">Пароль:</label><br>
+                <label for="{{ form.password1.id_for_label }}">Пароль:</label>
                 {{ form.password1 }}
                 {% if form.password1.errors %}
                     <div class="error-text">
@@ -55,7 +55,7 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.password2.id_for_label }}">Повторите пароль:</label><br>
+                <label for="{{ form.password2.id_for_label }}">Повторите пароль:</label>
                 {{ form.password2 }}
                 {% if form.password2.errors %}
                     <div class="error-text">

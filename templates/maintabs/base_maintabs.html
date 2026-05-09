@@ -163,8 +163,11 @@
                     Отчёты
                 </a>
                 <a href="{% url 'maintabs:notifications' %}"
-                   class="main-tab {% if current == 'notifications' %}main-tab--active{% endif %}">
+                   class="main-tab main-tab--notifications {% if current == 'notifications' %}main-tab--active{% endif %}">
                     Уведомления
+                    {% if request.user.account_type == 'owner' and has_unread_notifications %}
+                        <span class="notif-dot" aria-hidden="true"></span>
+                    {% endif %}
                 </a>
 
                 <span class="main-tabs-spacer"></span>
@@ -495,110 +498,8 @@
         updateSubcategories();
         updateGoalAvailability();
         updateImportanceAvailability();
-        
-        function attachFixedDateMask(input) {
-            if (!input) return;
 
-            var template = 'ДД.ММ.ГГ';
-            var editable = [0, 1, 3, 4, 6, 7];
-
-            function isEditable(pos) { return editable.indexOf(pos) !== -1; }
-            function nextEditable(pos) {
-                for (var i = 0; i < editable.length; i++) if (editable[i] >= pos) return editable[i];
-                return null;
-            }
-            function prevEditable(pos) {
-                for (var i = editable.length - 1; i >= 0; i--) if (editable[i] <= pos) return editable[i];
-                return null;
-            }
-            function placeholderAt(pos) {
-                if (pos === 0 || pos === 1) return 'Д';
-                if (pos === 3 || pos === 4) return 'М';
-                return 'Г';
-            }
-            function ensureValue() {
-                if (!input.value || input.value.length !== 8) input.value = template;
-            }
-            function setChar(pos, ch) {
-                var arr = input.value.split('');
-                arr[pos] = ch;
-                input.value = arr.join('');
-            }
-            function setCursor(pos) {
-                input.setSelectionRange(pos, pos);
-            }
-
-            ensureValue();
-
-            input.addEventListener('focus', function () {
-                ensureValue();
-                var p = nextEditable(input.selectionStart || 0);
-                if (p !== null) setCursor(p);
-            });
-
-            input.addEventListener('mousedown', function () {
-                setTimeout(function () {
-                    ensureValue();
-                    var p = nextEditable(input.selectionStart || 0);
-                    if (p !== null) setCursor(p);
-                }, 0);
-            });
-
-            input.addEventListener('keydown', function (e) {
-                ensureValue();
-                var key = e.key;
-                var pos = input.selectionStart || 0;
-
-                if (key === 'Tab' || key === 'ArrowLeft' || key === 'ArrowRight') return;
-
-                if (key === 'Backspace') {
-                    e.preventDefault();
-                    var p = prevEditable(pos - 1);
-                    if (p === null) return;
-                    setChar(p, placeholderAt(p));
-                    setCursor(p);
-                    return;
-                }
-
-                if (key === 'Delete') {
-                    e.preventDefault();
-                    var p2 = nextEditable(pos);
-                    if (p2 === null) return;
-                    setChar(p2, placeholderAt(p2));
-                    setCursor(p2);
-                    return;
-                }
-
-                if (/^\d$/.test(key)) {
-                    e.preventDefault();
-                    var p3 = nextEditable(pos);
-                    if (p3 === null) return;
-                    setChar(p3, key);
-                    var p4 = nextEditable(p3 + 1);
-                    if (p4 !== null) setCursor(p4);
-                    else setCursor(p3 + 1);
-                    return;
-                }
-
-                // запрещаем всё остальное (в т.ч. ввод точки/букв)
-                e.preventDefault();
-            });
-
-            input.addEventListener('paste', function (e) {
-                e.preventDefault();
-                ensureValue();
-                var text = (e.clipboardData || window.clipboardData).getData('text') || '';
-                var digits = text.replace(/\D/g, '').slice(0, 6); // ddmmyy
-                for (var i = 0; i < digits.length; i++) {
-                    setChar(editable[i], digits[i]);
-                }
-                var p = nextEditable(editable[Math.min(digits.length, editable.length - 1)] + 1);
-                if (p !== null) setCursor(p);
-            });
-        }
-
-        attachFixedDateMask(document.getElementById('{{ operation_form.date.id_for_label }}'));
-
+        attachFixedDMYMask(document.getElementById('{{ operation_form.date.id_for_label }}'));
         catSelect.addEventListener('change', function () {
             subSelect.value = '';
             updateSubcategories();
@@ -705,4 +606,120 @@
         </div>
     </div>
 {% endif %}
+<script>
+window.attachFixedDMYMask = function (input) {
+    if (!input) return;
+
+    var template = 'ДД.ММ.ГГ';
+    var editable = [0, 1, 3, 4, 6, 7];
+
+    function nextEditable(pos) {
+        for (var i = 0; i < editable.length; i++) if (editable[i] >= pos) return editable[i];
+        return null;
+    }
+    function prevEditable(pos) {
+        for (var i = editable.length - 1; i >= 0; i--) if (editable[i] <= pos) return editable[i];
+        return null;
+    }
+    function placeholderAt(pos) {
+        if (pos === 0 || pos === 1) return 'Д';
+        if (pos === 3 || pos === 4) return 'М';
+        return 'Г';
+    }
+    function isValidValue(v) {
+        return /^\d{2}\.\d{2}\.\d{2}$/.test(v);
+    }
+    function ensureValue() {
+        // если уже валидное значение — не трогаем
+        if (isValidValue(input.value)) return;
+        if (!input.value || input.value.length !== 8) input.value = template;
+        if (input.value[2] !== '.' || input.value[5] !== '.') input.value = template;
+    }
+    function setChar(pos, ch) {
+        var arr = input.value.split('');
+        arr[pos] = ch;
+        input.value = arr.join('');
+    }
+    function setCursor(pos) {
+        input.setSelectionRange(pos, pos);
+    }
+
+    ensureValue();
+
+    input.addEventListener('focus', function () {
+        ensureValue();
+        var p = nextEditable(input.selectionStart || 0);
+        if (p !== null) setCursor(p);
+    });
+
+    input.addEventListener('mousedown', function () {
+        setTimeout(function () {
+            ensureValue();
+            var p = nextEditable(input.selectionStart || 0);
+            if (p !== null) setCursor(p);
+        }, 0);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        ensureValue();
+        var key = e.key;
+        var pos = input.selectionStart || 0;
+
+        if (key === 'Tab' || key === 'ArrowLeft' || key === 'ArrowRight' || key === 'Home' || key === 'End') return;
+
+        if (key === 'Backspace') {
+            e.preventDefault();
+            var p = prevEditable(pos - 1);
+            if (p === null) return;
+            setChar(p, placeholderAt(p));
+            setCursor(p);
+            return;
+        }
+
+        if (key === 'Delete') {
+            e.preventDefault();
+            var p2 = nextEditable(pos);
+            if (p2 === null) return;
+            setChar(p2, placeholderAt(p2));
+            setCursor(p2);
+            return;
+        }
+
+        if (/^\d$/.test(key)) {
+            e.preventDefault();
+            var p3 = nextEditable(pos);
+            if (p3 === null) return;
+            setChar(p3, key);
+            var p4 = nextEditable(p3 + 1);
+            if (p4 !== null) setCursor(p4);
+            else setCursor(p3 + 1);
+            return;
+        }
+
+        e.preventDefault();
+    });
+
+    input.addEventListener('paste', function (e) {
+        e.preventDefault();
+        ensureValue();
+        var text = (e.clipboardData || window.clipboardData).getData('text') || '';
+        var digits = text.replace(/\D/g, '').slice(0, 6); // ddmmyy
+        for (var i = 0; i < digits.length; i++) {
+            setChar(editable[i], digits[i]);
+        }
+        var lastPos = editable[Math.min(digits.length, editable.length - 1)];
+        var p = nextEditable(lastPos + 1);
+        if (p !== null) setCursor(p);
+    });
+};
+
+window.clearDMYTemplateOnSubmit = function(form, inputs) {
+    if (!form) return;
+    form.addEventListener('submit', function () {
+        (inputs || []).forEach(function (inp) {
+            if (inp && inp.value === 'ДД.ММ.ГГ') inp.value = '';
+        });
+    });
+};
+</script>
 {% endblock %}

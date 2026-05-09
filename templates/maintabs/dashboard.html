@@ -22,31 +22,51 @@
                 <img src="{% static 'img/calendar-icon.svg' %}" alt="Период">
             </button>
 
-            <div class="range-popover" id="rangePopover">
-                <form method="get" action="{% url 'maintabs:dashboard' %}">
-                    {# сохраняем все текущие фильтры, кроме range #}
+            <div class="range-popover{% if filter_date_error %} is-open{% endif %}" id="rangePopover">
+
+                <div class="range-title">Период</div>
+
+                {% if filter_date_error %}
+                    <div class="error-text" style="margin-bottom: 8px;">
+                        Некорректные даты
+                    </div>
+                {% endif %}
+
+                <!-- Форма 1: кастомный период ДД.ММ.ГГ - ДД.ММ.ГГ -->
+                <form method="get" action="{% url 'maintabs:dashboard' %}" id="rangeCustomForm">
+                    {# сохраняем текущие фильтры, кроме period-параметров #}
                     {% for key, values in request.GET.lists %}
-                        {% if key != 'range' %}
+                        {% if key != 'range' and key != 'from' and key != 'to' %}
                             {% for v in values %}
                                 <input type="hidden" name="{{ key }}" value="{{ v }}">
                             {% endfor %}
                         {% endif %}
                     {% endfor %}
 
-                    <div class="range-title">Период</div>
-
-                    {% if filter_date_error %}
-                        <div class="error-text" style="margin-bottom: 8px;">
-                            Некорректные даты
-                        </div>
-                    {% endif %}
+                    <input type="hidden" name="range" value="custom">
 
                     <div class="range-dates">
-                        <input type="text" name="from" placeholder="ДД.ММ.ГГ" value="{{ filter_date_from }}" maxlength="10">
+                        <input type="text" name="from" placeholder="ДД.ММ.ГГ"
+                               value="{{ filter_date_from }}" maxlength="8"
+                               inputmode="numeric" autocomplete="off">
                         <span class="range-dash">-</span>
-                        <input type="text" name="to" placeholder="ДД.ММ.ГГ" value="{{ filter_date_to }}" maxlength="10">
+                        <input type="text" name="to" placeholder="ДД.ММ.ГГ"
+                               value="{{ filter_date_to }}" maxlength="8"
+                               inputmode="numeric" autocomplete="off">
                         <button type="submit" class="btn-primary range-ok">OK</button>
                     </div>
+                </form>
+
+                <!-- Форма 2: быстрые периоды -->
+                <form method="get" action="{% url 'maintabs:dashboard' %}" id="rangePresetForm">
+                    {# сохраняем текущие фильтры, кроме period-параметров #}
+                    {% for key, values in request.GET.lists %}
+                        {% if key != 'range' and key != 'from' and key != 'to' %}
+                            {% for v in values %}
+                                <input type="hidden" name="{{ key }}" value="{{ v }}">
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
 
                     <button type="submit" name="range" value="month"
                             class="range-item {% if period_key == 'month' %}range-item--active{% endif %}">
@@ -65,6 +85,7 @@
                         7 дней
                     </button>
                 </form>
+
             </div>
 
                 <a href="#add-category-modal" class="add-category-link">
@@ -261,22 +282,14 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeAll();
     });
-    function maskDateInput(inp) {
-        if (!inp) return;
-        inp.addEventListener('input', function () {
-            var digits = inp.value.replace(/\D/g, '').slice(0, 8);
-            var out = '';
-            if (digits.length >= 2) out += digits.slice(0, 2);
-            if (digits.length >= 3) out += '.' + digits.slice(2, 4);
-            if (digits.length >= 5) out += '.' + digits.slice(4, 8);
-            inp.value = out;
-        });
-    }
-
     var rangeFrom = document.querySelector('#rangePopover input[name="from"]');
     var rangeTo = document.querySelector('#rangePopover input[name="to"]');
-    maskDateInput(rangeFrom);
-    maskDateInput(rangeTo);
+
+    attachFixedDMYMask(rangeFrom);
+    attachFixedDMYMask(rangeTo);
+
+    var customForm = document.getElementById('rangeCustomForm');
+    clearDMYTemplateOnSubmit(customForm, [rangeFrom, rangeTo]);
 });
 </script>
 {% endblock %}

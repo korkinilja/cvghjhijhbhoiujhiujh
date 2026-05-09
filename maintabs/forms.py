@@ -476,6 +476,7 @@ class SpendingPlanForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.account = kwargs.pop('account', None)
+        self.month_for_check = kwargs.pop('month_for_check', None)
         super().__init__(*args, **kwargs)
 
         # лимит
@@ -563,8 +564,9 @@ class SpendingPlanForm(forms.ModelForm):
             return cleaned
 
         # уникальность (ключ плана)
+                # уникальность (ключ плана)
         if self.account is not None and cleaned.get('limit_amount') is not None:
-            month = cleaned.get('month_for_check')  # зададим во view
+            month = self.month_for_check
             if month:
                 qs = SpendingPlan.objects.filter(
                     account=self.account,

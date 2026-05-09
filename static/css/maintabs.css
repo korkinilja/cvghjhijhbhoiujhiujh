@@ -1,8 +1,10 @@
+/* ==========================
+   Основные страницы приложения (maintabs)
+   ========================== */
+
 body.main-page {
     height: 100vh;
     margin: 0;
-    background: #0f1713 url("../img/money_pattern.jpg") no-repeat center center fixed;
-    background-size: cover;
     display: flex;
     flex-direction: column;
     overflow: hidden; /* страница в целом не скроллится */
@@ -13,27 +15,25 @@ body.main-page .top-bar {
     display: none;
 }
 
-/* Основной layout: левая колонка + правая часть */
+/* ==========================
+   Layout: sidebar + main
+   ========================== */
 
 .app-layout {
     flex: 1;
     display: grid;
     grid-template-columns: 330px minmax(0, 1fr);
     column-gap: 18px;
-    row-gap: 0;
     padding: 16px;
     box-sizing: border-box;
     height: 100%;
     min-height: 0;
 }
-/* Левая панель */
 
+/* Левая панель (фон/цвет/радиус теперь в base.css через .sidebar) */
 .sidebar {
     display: flex;
     flex-direction: column;
-    border-radius: 18px;
-    background-color: rgba(12, 28, 20, 0.95);
-    color: #e9f5ee;
     padding: 16px 14px;
     box-sizing: border-box;
     border-right: 1px solid #101515;
@@ -51,19 +51,16 @@ body.main-page .top-bar {
     padding-bottom: 8px;
 }
 
-.sidebar-logo-main {
+.sidebar-logo-main,
+.sidebar-logo-sub {
     font-size: 32px;
     font-weight: 700;
     letter-spacing: 0.04em;
 }
 
 .sidebar-logo-sub {
-    font-size: 32px;
-    font-weight: 700;
     margin-top: 2px;
 }
-
-/* Переключатель "Счета / Цели" – пока просто декоративный */
 
 .sidebar-switcher {
     display: flex;
@@ -79,13 +76,13 @@ body.main-page .top-bar {
     background-color: #0f2017;
     color: #c7e0d3;
     font-size: 13px;
-    font-weight: 600;               /* жирнее текст */
+    font-weight: 600;
     cursor: pointer;
-    text-align: center;             /* центрируем текст */
-    display: inline-flex;           /* чтобы и вертикально по центру */
+    text-align: center;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    text-decoration: none;          /* на всякий случай для <a> */
+    text-decoration: none;
 }
 
 .sidebar-tab--active {
@@ -107,15 +104,9 @@ body.main-page .top-bar {
     border: 1px solid #24362a;
 }
 
-.sidebar-title {
-    margin: 0 0 6px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.sidebar,
-.main-area {
-    min-height: 0;
+.account-card,
+.goal-card {
+    position: relative;
 }
 
 .account-card-header,
@@ -163,23 +154,13 @@ body.main-page .top-bar {
     font-weight: 600;
 }
 
-/* Для удаления */
-
-/* Карточки счетов и целей — нужно позиционирование для кнопки удаления */
-.account-card,
-.goal-card {
-    position: relative;
+.account-card-icon-img {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
 }
 
-/* Форма с кнопкой удаления — в правом нижнем углу карточки */
-.account-card-delete-form {
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    margin: 0;
-}
-
-/* Форма с кнопкой удаления в правом нижнем углу карточки */
+/* Удаление карточек в сайдбаре */
 .card-delete-form {
     position: absolute;
     right: 8px;
@@ -187,7 +168,6 @@ body.main-page .top-bar {
     margin: 0;
 }
 
-/* Маленькая круглая кнопка с иконкой */
 .card-delete-btn {
     width: 24px;
     height: 24px;
@@ -205,22 +185,23 @@ body.main-page .top-bar {
     background-color: #7c3737;
 }
 
-/* Иконка внутри кнопки */
 .card-delete-btn img {
     width: 16px;
     height: 16px;
     display: block;
 }
 
-/* Иконки рядом с названием */
-
-.account-card-icon-img {
-    width: 16px;
-    height: 16px;
-    vertical-align: middle;
+.sidebar-add-btn {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+    text-align: center;
+    margin-top: 6px;
 }
 
-/* Правая часть */
+/* ==========================
+   Правая часть
+   ========================== */
 
 .main-area {
     display: flex;
@@ -230,14 +211,11 @@ body.main-page .top-bar {
     min-height: 0;
 }
 
-/* Вкладки сверху */
-
+/* Tabs сверху (фон/радиус/цвет теперь в base.css через .main-tabs) */
 .main-tabs {
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: rgba(12, 28, 20, 0.96);
-    border-radius: 18px;
     padding: 6px 10px;
     box-sizing: border-box;
 }
@@ -282,18 +260,15 @@ body.main-page .top-bar {
     margin-right: 8px;
 }
 
-/* Основной контент: "карточка" как на регистрации */
-
+/* Основной контент */
 .main-content {
     flex: 1;
     overflow: auto;
     min-height: 0;
 }
 
+/* Основная карточка (фон/радиус/цвет теперь в base.css через .main-card) */
 .main-card {
-    background-color: rgba(12, 28, 20, 0.96);
-    color: #e9f5ee;
-    border-radius: 18px;
     padding: 20px 24px;
     box-sizing: border-box;
 }
@@ -303,7 +278,52 @@ body.main-page .top-bar {
     margin-bottom: 12px;
 }
 
-.join-requests-list {
+.main-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+/* ВАЖНО: здесь и flex, и position:relative (раньше было в двух местах) */
+.main-card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative; /* для popover-ов */
+}
+
+/* Белая рамка-блок как у тебя */
+.notif-block {
+    border: 2px solid #ffffff;
+    border-radius: 18px;
+    padding: 12px 16px;
+    margin: 16px 0;
+}
+
+/* Django messages */
+.django-messages {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.django-messages li {
+    margin-bottom: 4px;
+}
+
+.message-success { color: #b6ffb6; }
+.message-error,
+.message-warning { color: #ffb6b6; }
+.message-info { color: #c7e0d3; }
+
+/* ==========================
+   Уведомления / join requests
+   ========================== */
+
+.join-requests-list,
+.notifications-list {
     list-style: none;
     padding: 0;
     margin: 12px 0 0;
@@ -317,9 +337,7 @@ body.main-page .top-bar {
     border-bottom: 1px solid #24362a;
 }
 
-.join-request-text {
-    flex: 1;
-}
+.join-request-text { flex: 1; }
 
 .join-request-actions {
     display: flex;
@@ -327,75 +345,22 @@ body.main-page .top-bar {
     gap: 8px;
 }
 
-.join-request-actions form {
+.join-request-actions form,
+.notification-item form {
     margin: 0;
 }
 
-/* Вспомогательные стили для сообщений messages */
-
-.django-messages {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 8px;
-    font-size: 14px;
-}
-
-.django-messages li {
-    margin-bottom: 4px;
-}
-
-.message-success {
-    color: #b6ffb6;
-}
-
-.message-error,
-.message-warning {
-    color: #ffb6b6;
-}
-
-.message-info {
-    color: #c7e0d3;
-}
-
-.error-text {
-    margin-top: 4px;
-    font-size: 13px;
-    color: #ffb6b6;
-}
-/* Кнопка "Нет" */
-
-.btn-secondary {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid #7c3737;
-    background-color: transparent;
-    color: #f2c4c4;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.btn-secondary:hover {
-    background-color: #7c3737;
-}
-
-.main-card-header {
+.notification-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid #24362a;
 }
 
-.notif-block {
-    border: 2px solid #ffffff;
-    border-radius: 18px;
-    padding: 12px 16px;
-    margin-top: 16px;
-    margin-bottom: 16px;
-}
-
-/* Модальные окна добавления счёта/цели */
+/* ==========================
+   Модалки
+   ========================== */
 
 .modal {
     position: fixed;
@@ -412,18 +377,15 @@ body.main-page .top-bar {
 }
 
 .modal.modal-open {
-    display: flex !important;;
+    display: flex !important;
 }
 
+/* modal-card: фон/радиус/цвет/тень теперь в base.css через .modal-card */
 .modal-card {
-    background-color: rgba(12, 28, 20, 0.98);
-    color: #e9f5ee;
-    border-radius: 18px;
     padding: 24px 28px;
     max-width: 420px;
     width: 100%;
     box-sizing: border-box;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
     position: relative;
 }
 
@@ -442,52 +404,44 @@ body.main-page .top-bar {
     cursor: pointer;
 }
 
-.sidebar-add-btn {
-    width: 100%;
-    box-sizing: border-box;
-    display: block;
-    text-align: center;
-    margin-top: 6px;
-}
-
-.notifications-list {
-    list-style: none;
-    padding: 0;
-    margin: 12px 0 0;
-}
-
-.notification-item {
+/* В модалках кнопки рядом — как раньше (учитывая, что у btn-danger убрали margin-left) */
+.modal-card .form-actions {
+    margin-top: 24px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: 1px solid #24362a;
+    justify-content: center;
+    gap: 16px; /* было 8 + margin-left(8) у btn-danger => визуально то же */
 }
 
-.notification-item form {
-    margin: 0;
-}
+/* ==========================
+   Кнопки-иконки
+   ========================== */
 
-.add-operation-btn {
-    display: flex;
+.circle-action-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+
     width: 32px;
     height: 32px;
+
     border-radius: 50%;
     border: 2px solid #2f7d46;
-    color: #2f7d46;
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1;
-    text-decoration: none;
+    background: rgba(9, 22, 16, 0.95);
+
     cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+    box-sizing: border-box;
 }
 
-.main-card-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+.circle-action-btn:hover {
+    background-color: #2f7d46;
+}
+
+.circle-action-btn img {
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 .add-category-link {
@@ -505,10 +459,9 @@ body.main-page .top-bar {
     text-decoration: underline;
 }
 
-.add-operation-btn:hover {
-    background-color: #2f7d46;
-    color: #f5fbf7;
-}
+/* ==========================
+   Операции (Учёт)
+   ========================== */
 
 .operations-list {
     list-style: none;
@@ -540,21 +493,11 @@ body.main-page .top-bar {
     color: #c7e0d3;
 }
 
-.operation-amount {
-    font-weight: 700;
-}
+.operation-amount { font-weight: 700; }
+.op-amount-income { color: #48a267; }
+.op-amount-expense { color: #ff8686; }
 
-.op-amount-income {
-    color: #48a267; /* доход */
-}
-
-.op-amount-expense {
-    color: #ff8686; /* расход */
-}
-
-.operation-container {
-    font-weight: 500;
-}
+.operation-container { font-weight: 500; }
 
 .operation-datetime {
     margin-left: auto;
@@ -562,17 +505,9 @@ body.main-page .top-bar {
     color: #a0b8aa;
 }
 
-.operation-user {
-    font-weight: 500;
-}
-
-.operation-category {
-    font-style: italic;
-}
-
-.operation-goal {
-    font-weight: 500;
-}
+.operation-user { font-weight: 500; }
+.operation-category { font-style: italic; }
+.operation-goal { font-weight: 500; }
 
 .operation-importance {
     padding: 1px 8px;
@@ -596,8 +531,7 @@ body.main-page .top-bar {
     color: #e9f5ee;
 }
 
-/* Кнопка редактирования (будем использовать в следующем шаге) */
-
+/* кнопка редактирования операции */
 .operation-edit-form {
     position: absolute;
     top: 4px;
@@ -628,67 +562,30 @@ body.main-page .top-bar {
     display: block;
 }
 
-.btn-danger {
-    display: inline-block;
-    padding: 10px 24px;
-    border-radius: 999px;
-    border: none;
-    background-color: #7c3737;
-    color: #ffffff;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-left: 8px;
+/* ==========================
+   Формы в модалках (специфика)
+   ========================== */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
 }
 
-.btn-danger:hover {
-    background-color: #5e2828;
-}
-
-.modal-card .form-actions {
-    margin-top: 24px;
+.time-inline {
     display: flex;
-    justify-content: center;
-    gap: 8px;
+    align-items: center;
+    gap: 6px;
 }
 
-/* Базовые стили форм внутри maintabs (модалки) */
-
-.form-group {
-    margin-bottom: 12px;
+.time-inline input {
+    width: 56px;
+    text-align: center;
 }
 
-.form-group > label {
-    display: block;
-    margin-bottom: 4px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-/* Поля ввода/селекты — чтобы они шли сразу под label */
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group input[type="date"],
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid #355645;
-    background-color: #0f2017;
-    color: #e9f5ee;
-}
-
-/* Радио-выбор (важность): убираем «лишние» отступы у ul */
-.form-group ul {
-    list-style: none;
-    margin: 4px 0 0;
-    padding: 0;
-}
-
-.form-group li {
-    margin: 0 0 4px;
+.time-colon {
+    font-weight: 700;
+    color: #c7e0d3;
 }
 
 .field-label-row {
@@ -699,9 +596,7 @@ body.main-page .top-bar {
     margin-bottom: 4px;
 }
 
-.info-popover {
-    position: relative;
-}
+.info-popover { position: relative; }
 
 .info-popover summary {
     list-style: none;
@@ -736,74 +631,19 @@ body.main-page .top-bar {
     z-index: 1100;
 }
 
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 14px;
-}
-
-.time-inline {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.time-inline input {
-    width: 56px;
-    text-align: center;
-}
-
-.time-colon {
-    font-weight: 700;
-    color: #c7e0d3;
-}
-
-.field-label {
-    margin: 0 0 4px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-/* на всякий случай, если где-то ещё остались <p> в form-group */
-.form-group p {
-    margin: 0 0 4px;
-}
-
-/* Кнопка фильтра */
-.filter-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid #355645;
-    background: rgba(9, 22, 16, 0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    cursor: pointer;
-}
-
-.filter-btn img {
-    width: 16px;
-    height: 16px;
-    display: block;
-}
-
-.filter-btn:hover {
-    border-color: #2f7d46;
-}
-
-/* Popover фильтра */
-.main-card-header-actions {
-    position: relative; /* чтобы popover позиционировался относительно этого блока */
-}
+/* ==========================
+   Popover фильтра и периода (Учёт + План)
+   (убраны дубли — оставлена финальная версия)
+   ========================== */
 
 .filter-popover {
     position: absolute;
     top: 40px;
     right: 0;
-    width: 280px;
+
+    width: 720px;
     display: none;
+
     background: rgba(9, 22, 16, 0.98);
     border: 1px solid #355645;
     border-radius: 14px;
@@ -814,6 +654,18 @@ body.main-page .top-bar {
 
 .filter-popover.is-open {
     display: block;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.filter-col {
+    max-height: 260px;
+    overflow: auto;
+    padding-right: 6px;
 }
 
 .filter-section {
@@ -852,10 +704,11 @@ body.main-page .top-bar {
     color: #e9f5ee;
 }
 
+/* было gap 10 + margin-left у btn-danger => делаем эквивалентно */
 .filter-actions {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: 18px;
     margin-top: 10px;
 }
 
@@ -883,162 +736,6 @@ body.main-page .top-bar {
     font-weight: 600;
     color: #e9f5ee;
     margin-bottom: 8px;
-}
-
-.range-item {
-    width: 100%;
-    display: block;
-    text-align: left;
-
-    padding: 8px 10px;
-    margin-bottom: 6px;
-
-    border-radius: 10px;
-    border: 1px solid #355645;
-    background-color: #0f2017;
-    color: #c7e0d3;
-
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-}
-
-.range-item:hover {
-    border-color: #2f7d46;
-}
-
-.range-item--active {
-    background-color: #2f7d46;
-    border-color: #2f7d46;
-    color: #f5fbf7;
-}
-
-.circle-action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 32px;
-    height: 32px;
-
-    border-radius: 50%;
-    border: 2px solid #2f7d46;
-    background: rgba(9, 22, 16, 0.95);
-
-    cursor: pointer;
-    padding: 0;
-    text-decoration: none;
-    box-sizing: border-box;
-}
-
-.circle-action-btn:hover {
-    background-color: #2f7d46;
-}
-
-.circle-action-btn img {
-    width: 16px;
-    height: 16px;
-    display: block;
-}
-
-
-.filter-popover {
-    position: absolute;
-    top: 40px;
-    right: 0;
-
-    width: 720px;               /* шире */
-    display: none;
-
-    background: rgba(9, 22, 16, 0.98);
-    border: 1px solid #355645;
-    border-radius: 14px;
-    padding: 12px 12px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-    z-index: 1200;
-}
-
-.filter-popover.is-open {
-    display: block;
-}
-
-.filter-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-}
-
-/* каждая колонка скроллится внутри, чтобы popover был ниже */
-.filter-col {
-    max-height: 260px;
-    overflow: auto;
-    padding-right: 6px;
-}
-
-.filter-actions {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-/* чтобы btn-danger на <a> выглядел как кнопка */
-.btn-danger {
-    text-decoration: none;
-}
-
-.range-popover {
-    position: absolute;
-    top: 40px;
-    right: 0;
-    width: 220px;
-    display: none;
-
-    background: rgba(9, 22, 16, 0.98);
-    border: 1px solid #355645;
-    border-radius: 14px;
-    padding: 10px 10px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-    z-index: 1200;
-}
-
-.range-popover.is-open {
-    display: block;
-}
-
-.range-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #e9f5ee;
-    margin-bottom: 8px;
-}
-
-.range-item {
-    width: 100%;
-    display: block;
-    text-align: left;
-
-    padding: 8px 10px;
-    margin-bottom: 6px;
-
-    border-radius: 10px;
-    border: 1px solid #355645;
-    background-color: #0f2017;
-    color: #c7e0d3;
-
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-}
-
-.range-item:hover {
-    border-color: #2f7d46;
-}
-
-.range-item--active {
-    background-color: #2f7d46;
-    border-color: #2f7d46;
-    color: #f5fbf7;
 }
 
 .range-dates {
@@ -1071,6 +768,38 @@ body.main-page .top-bar {
     border-radius: 999px;
 }
 
+.range-item {
+    width: 100%;
+    display: block;
+    text-align: left;
+
+    padding: 8px 10px;
+    margin-bottom: 6px;
+
+    border-radius: 10px;
+    border: 1px solid #355645;
+    background-color: #0f2017;
+    color: #c7e0d3;
+
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.range-item:hover {
+    border-color: #2f7d46;
+}
+
+.range-item--active {
+    background-color: #2f7d46;
+    border-color: #2f7d46;
+    color: #f5fbf7;
+}
+
+/* ==========================
+   План
+   ========================== */
+
 .plans-list {
     list-style: none;
     padding: 0;
@@ -1092,12 +821,6 @@ body.main-page .top-bar {
     flex-wrap: wrap;
 }
 
-.plan-importance {
-    font-size: 16px;
-    font-weight: 700;
-    color: #e9f5ee;
-}
-
 .plan-scope {
     font-size: 14px;
     color: #e9f5ee;
@@ -1109,25 +832,41 @@ body.main-page .top-bar {
     color: #e9f5ee;
 }
 
+/* ВАЖНО: бейдж важности на плане — как в Учёте, но крупнее */
+.plan-importance-badge {
+    font-size: 14px;     /* было 11px в учёте */
+    padding: 2px 10px;   /* чуть «массивнее» */
+    font-weight: 700;
+}
+
 .plan-amounts {
     margin-top: 6px;
     font-size: 16px;
     font-weight: 700;
 }
 
-.plan-spent-under {
-    color: #7AA4FF;
-}
-
-.plan-spent-over {
-    color: #ff7b7b;
-}
+.plan-spent-under { color: #7AA4FF; }
+.plan-spent-over { color: #ff7b7b; }
 
 .plan-slash,
-.plan-limit {
-    color: #e9f5ee;
-}
+.plan-limit { color: #e9f5ee; }
 
 .plan-actions {
     margin-left: 10px;
+}
+
+.main-tab--notifications {
+    position: relative;
+}
+
+/* красный кружок возле последней буквы */
+.notif-dot {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4747;
+    box-shadow: 0 0 4px rgba(255, 71, 71, 0.8);
 }
