@@ -24,7 +24,6 @@
         </ul>
     {% endif %}
 
-    {# Блок с заявками на присоединение #}
     {% if request.user.account_type == 'owner' %}
         {% if join_requests %}
             <div class="notif-block">
@@ -59,7 +58,6 @@
                                         <button type="submit" class="btn-secondary">Нет</button>
                                     </form>
                                 {% else %}
-                                    {# НЕ-pending: можно скрыть уведомление корзинкой #}
                                     <form method="post"
                                           action="{% url 'maintabs:dismiss_join_request' req.pk %}">
                                         {% csrf_token %}
@@ -79,7 +77,6 @@
         {% endif %}
     {% endif %}
 
-    {# Блок с уведомлениями о счетах и целях #}
         {% if notifications_list %}
         <div class="notif-block">
             <h2 style="margin-top: 0; font-size: 18px;">Уведомления о счетах и целях</h2>

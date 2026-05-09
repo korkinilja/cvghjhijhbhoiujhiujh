@@ -8,6 +8,27 @@ from .models import User
 
 
 class RegistrationForm(UserCreationForm):
+    """
+    Форма регистрации с выбором роли
+    """
+    
+    username = forms.CharField(
+        max_length=20,
+        widget=forms.TextInput(attrs={'maxlength': '20'}),
+    )
+
+    password1 = forms.CharField(
+        strip=False,
+        max_length=20,
+        widget=forms.PasswordInput(attrs={'maxlength': '20'}),
+    )
+
+    password2 = forms.CharField(
+        strip=False,
+        max_length=20,
+        widget=forms.PasswordInput(attrs={'maxlength': '20'}),
+    )
+    
     account_type = forms.ChoiceField(
         label='Кто вы?',
         choices=User.ACCOUNT_TYPE_CHOICES,
@@ -18,6 +39,9 @@ class RegistrationForm(UserCreationForm):
         model = User
         fields = ('username', 'account_type')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def clean_username(self):
         username = self.cleaned_data['username'].lower()
 
@@ -26,7 +50,6 @@ class RegistrationForm(UserCreationForm):
                 'Логин может содержать только латинские буквы, цифры и символ подчёркивания.'
             )
 
-        # Уникальность
         if User.objects.filter(username=username).exists():
             raise forms.ValidationError(
                 'Пользователь с таким логином уже существует.'
@@ -66,10 +89,15 @@ class RegistrationForm(UserCreationForm):
     
 class CustomAuthenticationForm(AuthenticationForm):
     """
-    Форма входа:
-    - логин приводится к нижнему регистру;
-    - разные сообщения: нет пользователя / неверный пароль.
+    Форма входа
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for name in ('username', 'password'):
+            if name in self.fields:
+                self.fields[name].max_length = 20
+                self.fields[name].widget.attrs['maxlength'] = '20'
 
     def clean(self):
         username = self.cleaned_data.get('username')

@@ -26,7 +26,6 @@
                         <div class="error-text" style="margin-bottom: 8px;">Некорректные даты</div>
                     {% endif %}
 
-                    <!-- Форма 1: один месяц -->
                     <form method="get" action="{% url 'maintabs:plan' %}" id="planMonthForm">
                         <div class="range-title">Отобразить месяц:</div>
                         <div class="range-dates" style="grid-template-columns: 1fr auto;">
@@ -37,7 +36,6 @@
                         </div>
                     </form>
 
-                    <!-- Форма 2: период -->
                     <form method="get" action="{% url 'maintabs:plan' %}" id="planPeriodForm">
                         <div class="range-title">Отобразить период:</div>
                         <div class="range-dates">
@@ -240,7 +238,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // popover периода на плане
     var t = document.getElementById('planRangeToggle');
     var p = document.getElementById('planRangePopover');
     if (t && p) {
@@ -256,7 +253,6 @@ document.addEventListener('DOMContentLoaded', function () {
     );
     planInputs.forEach(function (inp) { attachFixedMMGGMask(inp); });
 
-    // ВАЖНО: чтобы "ММ.ГГ" не улетало на сервер как значение — чистим перед submit
     var planRangeForm = document.querySelector('#planRangePopover form');
     if (planRangeForm) {
         planRangeForm.addEventListener('submit', function () {
@@ -265,22 +261,46 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
-    // блокировать выбор подкатегории пока не выбрана категория
+        var data = {{ plan_categories_json|default:'{}'|safe }};
     var cat = document.getElementById('{{ plan_form.category.id_for_label }}');
     var sub = document.getElementById('{{ plan_form.subcategory.id_for_label }}');
+
     if (cat && sub) {
-        function upd() {
-            if (!cat.value) {
-                sub.value = '';
-                sub.disabled = true;
-            } else {
-                sub.disabled = false;
+        function updateSubcategories() {
+            var catId = cat.value;
+            var currentValue = sub.value;
+
+            sub.innerHTML = '';
+
+            var placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '---------';
+            sub.appendChild(placeholder);
+
+            if (catId && data[catId]) {
+                data[catId].forEach(function (item) {
+                    var opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    sub.appendChild(opt);
+                });
+            }
+
+            sub.disabled = !catId;
+
+            if (currentValue) {
+                sub.value = currentValue;
+                if (sub.value !== currentValue) {
+                    sub.value = '';
+                }
             }
         }
-        upd();
+
+        updateSubcategories();
+
         cat.addEventListener('change', function () {
-            if (!cat.value) sub.value = '';
-            upd();
+            sub.value = '';
+            updateSubcategories();
         });
     }
 });

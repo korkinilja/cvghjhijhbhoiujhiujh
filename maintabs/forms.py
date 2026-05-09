@@ -1,18 +1,17 @@
 from django import forms
 from accounts.models import User
-from .models import MoneyContainer, Goal
-from django import forms
-from accounts.models import User
 from .models import MoneyContainer, Goal, Category, Operation, SpendingPlan
 from django.utils import timezone
-from decimal import Decimal, InvalidOperation
 
 class MoneyContainerForm(forms.ModelForm):
+    """
+    Форма создания аккаунта
+    """
     class Meta:
         model = MoneyContainer
         fields = ['name', 'type', 'balance', 'owner']
         widgets = {
-            'type': forms.RadioSelect,  # две «кнопки» наличные/карта
+            'type': forms.RadioSelect,
         }
         labels = {
             'name': 'Название счёта',
@@ -28,9 +27,8 @@ class MoneyContainerForm(forms.ModelForm):
         if self.account is not None:
             qs = User.objects.filter(account=self.account).order_by('username')
             self.fields['owner'].queryset = qs
-            self.fields['owner'].empty_label = None  # убираем '---------'
+            self.fields['owner'].empty_label = None
             if user is not None:
-                # если владелец счёта в списке — ставим его по умолчанию
                 if user.account_type == User.OWNER and self.account.owner in qs:
                     self.initial['owner'] = self.account.owner
                 else:
@@ -41,7 +39,6 @@ class MoneyContainerForm(forms.ModelForm):
         if not name:
             return name
 
-        # self.account у тебя уже передаётся в форму; если вдруг нет — защита:
         account = getattr(self, 'account', None)
         if account is None:
             return name
@@ -53,7 +50,6 @@ class MoneyContainerForm(forms.ModelForm):
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
 
-        # Если такое имя уже встречалось у контейнера, у которого есть операции — запрещаем навсегда
         if qs.filter(operations__isnull=False).exists():
             raise forms.ValidationError('Ранее уже был счёт с таким именем')
 
@@ -63,6 +59,9 @@ class MoneyContainerForm(forms.ModelForm):
         return name
 
 class GoalForm(forms.ModelForm):
+    """
+    Форма создания цели с выбором ответственного
+    """
     class Meta:
         model = Goal
         fields = ['name', 'target_amount', 'current_amount', 'owner']
@@ -88,10 +87,6 @@ class GoalForm(forms.ModelForm):
                     self.initial['owner'] = user
 
     def clean_name(self):
-        """
-        Проверяем, что в рамках этого account нет другой цели
-        с таким же названием (без учёта регистра).
-        """
         name = self.cleaned_data.get('name')
         if self.account and name:
             qs = Goal.objects.filter(
@@ -105,6 +100,9 @@ class GoalForm(forms.ModelForm):
         return name
     
 class OperationForm(forms.ModelForm):
+    """
+    Форма добавления/редактирования операции
+    """
     date = forms.CharField(
         label='Дата',
         widget=forms.TextInput(attrs={
@@ -114,10 +112,20 @@ class OperationForm(forms.ModelForm):
             'autocomplete': 'off',
         }),
     )
+    
+    comment = forms.CharField(
+        label='Комментарий',
+        required=False,
+        max_length=20,
+        widget=forms.TextInput(attrs={'maxlength': '20'}),
+        error_messages={'max_length': 'Комментарий не должен превышать 20 символов.'},
+    )
+    
     time_hour = forms.CharField(
         label='Часы',
         widget=forms.TextInput(attrs={'size': '2', 'maxlength': '2'}),
     )
+    
     time_minute = forms.CharField(
         label='Минуты',
         widget=forms.TextInput(attrs={'size': '2', 'maxlength': '2'}),
@@ -189,7 +197,6 @@ class OperationForm(forms.ModelForm):
 
         self.fields['amount'].widget = forms.NumberInput(attrs={'step': '0.01'})
 
-        # Дата, время, важность
         if not self.is_bound:
             if self.instance and self.instance.pk:
                 dt = timezone.localtime(self.instance.datetime)
@@ -271,22 +278,13 @@ class OperationForm(forms.ModelForm):
 
         if not container or not category or amount is None:
             return cleaned
-
-        def clean_comment(self):
-            comment = self.cleaned_data.get('comment', '')
-            if comment and len(comment) > 20:
-                raise forms.ValidationError('Комментарий не должен превышать 20 символов.')
-            return comment        
         
-        
-        # Подкатегория обязательна, если у категории есть подкатегории
         has_subs = Category.objects.filter(parent=category).exists()
         if has_subs and not subcategory:
             self.add_error('subcategory', 'Выберите подкатегорию для этой категории.')
         if subcategory and subcategory.parent_id != category.id:
             self.add_error('subcategory', 'Подкатегория не принадлежит выбранной категории.')
 
-        # Логика цели и категории "На цели"
         if category.is_goal_category:
             if not goal:
                 self.add_error('goal', 'Выберите цель для категории "На цели".')
@@ -301,7 +299,6 @@ class OperationForm(forms.ModelForm):
                 self.add_error('is_important', 'Выберите важность для расхода.')
         
         
-        # Проверка достаточности средств для расхода
         if category.type == Category.TYPE_EXPENSE:
             current_balance = container.current_balance
             if self.instance and self.instance.pk and self.instance.container_id == container.id:
@@ -374,7 +371,6 @@ class CategoryCreateForm(forms.Form):
         subs_csv = (self.cleaned_data.get('subcategories_csv') or '').strip()
         mode = self.cleaned_data.get('mode')
 
-        # Если создаём подкатегорию — это поле не используется
         if mode == self.MODE_SUBCATEGORY:
             return ''
 
@@ -479,10 +475,8 @@ class SpendingPlanForm(forms.ModelForm):
         self.month_for_check = kwargs.pop('month_for_check', None)
         super().__init__(*args, **kwargs)
 
-        # лимит
         self.fields['limit_amount'].widget = forms.NumberInput(attrs={'step': '0.01'})
 
-        # scope: "все" + пользователи аккаунта
         users = []
         if self.account is not None:
             users = list(User.objects.filter(account=self.account).order_by('username'))
@@ -492,20 +486,17 @@ class SpendingPlanForm(forms.ModelForm):
             choices.append((f'user:{u.id}', u.username))
         self.fields['scope_choice'].choices = choices
 
-        # категории только расходные верхнего уровня (доход не нужен)
         self.fields['category'].queryset = Category.objects.filter(
             parent__isnull=True,
             type=Category.TYPE_EXPENSE,
         ).order_by('name')
 
-        # подкатегории расходные
         self.fields['subcategory'].queryset = Category.objects.filter(
             parent__isnull=False,
             type=Category.TYPE_EXPENSE,
         ).order_by('parent__name', 'name')
         self.fields['subcategory'].required = False
 
-        # initial при редактировании
         if self.instance and self.instance.pk:
             if self.instance.scope_user_id is None:
                 self.fields['scope_choice'].initial = 'all'
@@ -530,7 +521,6 @@ class SpendingPlanForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
 
-        # scope_user
         scope = cleaned.get('scope_choice')
         scope_user = None
         if scope == 'all':
@@ -551,7 +541,6 @@ class SpendingPlanForm(forms.ModelForm):
 
         cleaned['scope_user_obj'] = scope_user
 
-        # importance -> importance (None/True/False)
         imp = cleaned.get('importance_choice', '')
         if imp == '':
             cleaned['importance_value'] = None
@@ -563,9 +552,18 @@ class SpendingPlanForm(forms.ModelForm):
             self.add_error('importance_choice', 'Некорректный выбор важности.')
             return cleaned
 
-        # уникальность (ключ плана)
-                # уникальность (ключ плана)
         if self.account is not None and cleaned.get('limit_amount') is not None:
+            category = cleaned.get('category')
+            subcategory = cleaned.get('subcategory')
+
+            if subcategory and not category:
+                self.add_error('category', 'Выберите категорию.')
+                return cleaned
+
+            if category and subcategory and subcategory.parent_id != category.id:
+                self.add_error('subcategory', 'Подкатегория не принадлежит выбранной категории.')
+                return cleaned
+
             month = self.month_for_check
             if month:
                 qs = SpendingPlan.objects.filter(

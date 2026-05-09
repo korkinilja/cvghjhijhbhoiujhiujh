@@ -53,7 +53,6 @@
                     <div class="error-text" style="margin-bottom: 8px;">Некорректные даты</div>
                 {% endif %}
 
-                <!-- форма 1: месяц -->
                 <form method="get" action="{% url 'maintabs:reports' %}" id="reportsMonthForm">
                     <input type="hidden" name="who" value="{% if selected_user %}{{ selected_user.id }}{% else %}all{% endif %}">
                     <div class="range-title">Отобразить месяц:</div>
@@ -64,7 +63,6 @@
                     </div>
                 </form>
             
-                <!-- форма 2: период -->
                 <form method="get" action="{% url 'maintabs:reports' %}" id="reportsPeriodForm">
                     <input type="hidden" name="who" value="{% if selected_user %}{{ selected_user.id }}{% else %}all{% endif %}">
                     <div class="range-title">Отобразить период:</div>

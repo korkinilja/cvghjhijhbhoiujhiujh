@@ -1,7 +1,4 @@
-/* ==========================
-   Страница авторизации/регистрации
-   (только то, что специфично для auth)
-   ========================== */
+/* Страница авторизации/регистрации */
 
 body.auth-page {
     min-height: 100vh;
@@ -9,7 +6,6 @@ body.auth-page {
     flex-direction: column;
 }
 
-/* Верхняя полоска на auth-страницах */
 body.auth-page .top-bar {
     color: #ffffff;
     background: transparent;
@@ -21,7 +17,6 @@ body.auth-page .top-bar a {
     color: inherit;
 }
 
-/* Центровщик карточки */
 .auth-wrapper {
     flex: 1;
     display: flex;
@@ -30,7 +25,6 @@ body.auth-page .top-bar a {
     padding: 20px;
 }
 
-/* Карточка: фон/цвет/радиус/тень теперь в base.css (через .auth-card) */
 .auth-card {
     padding: 32px 40px;
     max-width: 420px;
@@ -45,17 +39,15 @@ body.auth-page .top-bar a {
     text-align: center;
 }
 
-/* На auth хотим чуть более «воздушные» отступы */
 body.auth-page .form-group {
     margin-bottom: 16px;
 }
 
-/* На auth цвет ошибки был немного другой — сохраняем */
+
 body.auth-page .error-text {
     color: #feb2b2;
 }
 
-/* details/summary подсказка */
 .info-details {
     margin-top: 6px;
     font-size: 13px;

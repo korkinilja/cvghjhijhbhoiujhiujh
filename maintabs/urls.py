@@ -32,5 +32,5 @@ urlpatterns = [
     path('plans/', views.plan, name='plan'),
     path('plans/add/', views.add_plan, name='add_plan'),
     path('plans/<int:pk>/edit/', views.edit_plan, name='edit_plan'),
-    path('plans/<int:pk>/delete/', views.delete_plan, name='delete_plan'),
+    path('plans/<int:pk>/delete/', views.delete_plan, name='delete_plan')
 ]

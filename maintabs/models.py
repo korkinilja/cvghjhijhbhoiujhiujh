@@ -57,7 +57,7 @@ class JoinRequest(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     is_read_by_owner = models.BooleanField(
-        'Прочитано владельцем',
+        'Прочитано',
         default=False,
     )
     decided_at = models.DateTimeField(null=True, blank=True)

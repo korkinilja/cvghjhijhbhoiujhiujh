@@ -32,14 +32,12 @@ def dashboard(request):
 
     get_params = request.GET
 
-    # по умолчанию — модалка добавления операции
     operation_form_obj = None
     operation_form_action = reverse('maintabs:add_operation')
     operation_is_edit = False
     operation_id = None
     open_operation_modal = False
 
-    # если пришёл ?edit=<id> — открываем модалку редактирования
     edit_id = (get_params.get('edit', '') or '').strip()
     if edit_id:
         try:
@@ -72,7 +70,6 @@ def month_start(d: pydate) -> pydate:
     return d.replace(day=1)
 
 def add_months(d: pydate, n: int) -> pydate:
-    # d = первое число месяца
     y = d.year + (d.month - 1 + n) // 12
     m = (d.month - 1 + n) % 12 + 1
     return pydate(y, m, 1)
@@ -96,7 +93,7 @@ def parse_mm_gg(s: str):
 
 def ensure_month_plans(account: BudgetAccount, current_month: pydate):
     """
-    Копируем планы прошлого месяца в текущий
+    Копия планы прошлого месяца в текущий
     """
     prev_month = add_months(current_month, -1)
     prev_plans = SpendingPlan.objects.filter(account=account, month=prev_month)
@@ -158,11 +155,10 @@ def add_plan(request):
         form.save(month=current_month)
         return redirect(next_url)
 
-    # ошибка: НЕ redirect, а рендерим plan.html с ошибками и открытой модалкой
     params = params_from_next_url(next_url)
-    request.GET = params  # чтобы plan() построил страницу для того же месяца/режима
+    request.GET = params
 
-    resp = plan(request)  # TemplateResponse
+    resp = plan(request)
     ctx = resp.context_data
 
     ctx['plan_form'] = form
@@ -243,21 +239,18 @@ def plan(request):
 
     account = user.account
 
-    # выбор месяца/периода (GET)
     month_str = request.GET.get('m', '').strip()
     fromm_str = request.GET.get('fromm', '').strip()
     tom_str = request.GET.get('tom', '').strip()
 
     plan_date_error = False
-    mode = 'month'  # или 'period'
+    mode = 'month'
     current_month = month_start(timezone.localdate())
 
-    # по умолчанию показываем текущий месяц
     selected_month = current_month
     period_from = None
-    period_to = None  # inclusive month start
+    period_to = None
 
-    # если используешь "жёсткую маску" с реальным текстом "ММ.ГГ" — считаем это пустым
     if month_str == 'ММ.ГГ':
         month_str = ''
     if fromm_str == 'ММ.ГГ':
@@ -265,7 +258,6 @@ def plan(request):
     if tom_str == 'ММ.ГГ':
         tom_str = ''
 
-    # режим периода (форма 2)
     if fromm_str or tom_str:
         mode = 'period'
         f = parse_mm_gg(fromm_str)
@@ -280,7 +272,6 @@ def plan(request):
             period_from = f
             period_to = t
 
-    # режим месяца (форма 1)
     elif month_str:
         m = parse_mm_gg(month_str)
         if m is None:
@@ -291,7 +282,6 @@ def plan(request):
 
     allow_edit = (mode == 'month' and selected_month == current_month)
 
-    # автокопирование для текущего месяца
     if allow_edit:
         ensure_month_plans(account, current_month)
 
@@ -312,7 +302,6 @@ def plan(request):
                 'is_under': spent <= p.limit_amount,
             })
     else:
-        # период: суммируем лимиты по ключу
         start_m = period_from
         end_m_next = add_months(period_to, 1)
         start_dt = timezone.make_aware(datetime.combine(start_m, time.min), timezone.get_current_timezone())
@@ -323,7 +312,6 @@ def plan(request):
             total_limit=Sum('limit_amount')
         )
 
-        # для отображения нужны имена
         users_map = {u.id: u.username for u in User.objects.filter(account=account)}
         cat_map = {c.id: c.name for c in Category.objects.all()}
         months_map = {}
@@ -338,7 +326,6 @@ def plan(request):
             subcategory_id = row['subcategory_id']
             limit_sum = row['total_limit'] or Decimal('0.00')
 
-            # считаем потрачено для этой группы
             key = (scope_user_id, importance, category_id, subcategory_id)
 
             temp_plan = SpendingPlan(
@@ -373,7 +360,6 @@ def plan(request):
                 'is_over': spent > limit_sum,
             })
 
-    # модалка add/edit плана по ?pedit=
     plan_form = SpendingPlanForm(account=account)
     plan_form_action = reverse('maintabs:add_plan')
     plan_is_edit = False
@@ -438,7 +424,6 @@ def reports(request):
     if account is None:
         return redirect('maintabs:join_account')
 
-    # --- фильтр времени (как в плане) ---
     month_str = (request.GET.get('m', '') or '').strip()
     fromm_str = (request.GET.get('fromm', '') or '').strip()
     tom_str = (request.GET.get('tom', '') or '').strip()
@@ -450,7 +435,6 @@ def reports(request):
     period_from = None
     period_to = None
 
-    # если используешь жёсткую маску с текстом "ММ.ГГ" — это считаем пустым
     if month_str == 'ММ.ГГ':
         month_str = ''
     if fromm_str == 'ММ.ГГ':
@@ -478,7 +462,6 @@ def reports(request):
         else:
             selected_month = m
 
-    # --- фильтр пользователя ---
     who = (request.GET.get('who', 'all') or 'all').strip()
     users_list = list(User.objects.filter(account=account).order_by('username'))
 
@@ -497,12 +480,10 @@ def reports(request):
         else:
             selected_user_label = selected_user.username
 
-    # --- границы дат для операций ---
     if mode == 'month':
         start_m = selected_month
         end_m_next = add_months(selected_month, 1)
     else:
-        # при ошибке даты просто пустые отчёты
         if report_date_error or period_from is None or period_to is None:
             start_m = current_month
             end_m_next = add_months(current_month, 1)
@@ -513,7 +494,6 @@ def reports(request):
     start_dt = timezone.make_aware(datetime.combine(start_m, time.min), timezone.get_current_timezone())
     end_dt = timezone.make_aware(datetime.combine(end_m_next, time.min), timezone.get_current_timezone())
 
-    # --- операции (только расходы) ---
     ops = Operation.objects.filter(
         account=account,
         category__type=Category.TYPE_EXPENSE,
@@ -522,12 +502,10 @@ def reports(request):
     ).select_related('category', 'container')
 
     if selected_user is not None:
-        # "траты с его счетов" => container.owner
         ops = ops.filter(container__owner=selected_user)
 
     total_expense = ops.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
 
-    # --- pie по категориям ---
     cat_rows = list(
         ops.values('category_id', 'category__name').annotate(total=Sum('amount')).order_by('-total')
     )
@@ -537,7 +515,7 @@ def reports(request):
     values = []
 
     if total_expense > 0:
-        threshold = total_expense * Decimal('0.02')  # 2%
+        threshold = total_expense * Decimal('0.02')
         for r in cat_rows:
             v = r['total'] or Decimal('0.00')
             if v < threshold:
@@ -550,7 +528,6 @@ def reports(request):
             labels.append('Прочее')
             values.append(other_sum)
 
-    # цвета (просто цикл по палитре)
     palette = [
         '#7AA4FF', '#48A267', '#FF8686', '#F2C4C4', '#A6D8BB',
         '#c7e0d3', '#ff7b7b', '#9ad0f5', '#ffd166', '#b8f2e6',
@@ -568,7 +545,6 @@ def reports(request):
             'color': colors[i],
         })
 
-    # --- pie по важности (необходимые/свободные) ---
     necessary_sum = ops.filter(is_important=True).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
     free_sum = ops.filter(is_important=False).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
 
@@ -605,7 +581,6 @@ def reports(request):
     ).select_related('scope_user', 'category', 'subcategory')
 
     if selected_user is None:
-        # "Все" => учитываем только планы "Все"
         plans_qs = plans_qs.filter(scope_user__isnull=True)
     else:
         plans_qs = plans_qs.filter(scope_user=selected_user)
@@ -803,11 +778,9 @@ def ensure_owner_account(user: User) -> BudgetAccount | None:
 def join_account(request):
     user = request.user
 
-    # Владелец или участник с уже привязанным счётом сюда не попадает
     if user.account_type == User.OWNER or user.account is not None:
         return redirect('maintabs:dashboard')
 
-    # Активные запросы этого пользователя
     pending_requests = JoinRequest.objects.filter(
         from_user=user,
         status=JoinRequest.STATUS_PENDING,
@@ -838,7 +811,6 @@ def join_account(request):
                 elif pending_requests.count() >= 3:
                     error_message = 'Нельзя отправить больше трёх активных запросов.'
                 else:
-                    # проверяем лимит участников у владельца
                     account = target_user.account
                     member_count = User.objects.filter(
                         account=account,
@@ -853,7 +825,6 @@ def join_account(request):
                             status=JoinRequest.STATUS_PENDING,
                         )
                         success_message = 'Запрос отправлен.'
-                        # обновляем список активных запросов
                         pending_requests = JoinRequest.objects.filter(
                             from_user=user,
                             status=JoinRequest.STATUS_PENDING,
@@ -872,7 +843,6 @@ def handle_join_request(request, pk, action):
     if user_needs_account(user):
         return redirect('maintabs:join_account')
 
-    # Только владелец счёта может обрабатывать заявки
     if user.account_type != User.OWNER or user.account is None:
         return redirect('maintabs:dashboard')
 
@@ -889,7 +859,6 @@ def handle_join_request(request, pk, action):
     member = join_request.from_user
 
     if action == 'approve':
-        # проверяем лимит участников
         member_count = User.objects.filter(
             account=user.account,
             account_type=User.MEMBER,
@@ -903,11 +872,9 @@ def handle_join_request(request, pk, action):
                 'Нельзя принять запрос: у счёта уже максимальное количество участников.',
             )
         else:
-            # присоединяем участника к счёту владельца
             member.account = user.account
             member.save(update_fields=['account'])
 
-            # все остальные активные запросы этого участника отклоняем
             JoinRequest.objects.filter(
                 from_user=member,
                 status=JoinRequest.STATUS_PENDING,
@@ -943,7 +910,6 @@ def dismiss_join_request(request, pk):
     if user_needs_account(user):
         return redirect('maintabs:join_account')
 
-    # Только владелец счёта
     if user.account_type != User.OWNER or user.account is None:
         return redirect('maintabs:dashboard')
 
@@ -965,8 +931,7 @@ def dismiss_join_request(request, pk):
 
 def get_sidebar_context(user: User, selected_panel: str = 'accounts'):
     """
-    Данные для левой панели: контейнеры, цели, участники + пустые формы
-    (для владельца).
+    Данные для левой панели: счета, цели, участники
     """
     account = user.account
     containers = []
@@ -986,7 +951,6 @@ def get_sidebar_context(user: User, selected_panel: str = 'accounts'):
             account=account
         ).select_related('owner')
 
-        # группировка: сначала owner счёта, потом остальные по времени создания
         owner_id = account.owner_id
 
         containers = list(containers_qs)
@@ -1063,18 +1027,16 @@ def add_container(request):
 
         return redirect(next_url)
 
-    # форма НЕвалидна — остаёмся на той же странице, открываем модалку со счётом
     parsed = urlparse(next_url)
-    path = parsed.path  # '/', '/plan/', '/reports/', '/notifications/'
+    path = parsed.path
 
-    # Определяем account так же, как в dashboard
     if user.account_type == User.OWNER:
         account = ensure_owner_account(user)
     else:
         account = user.account
     account_owner = account.owner if account else None
 
-    panel = 'accounts'  # при добавлении счёта всегда панель "Счета"
+    panel = 'accounts'
 
     context = {
         'account': account,
@@ -1150,7 +1112,7 @@ def add_goal(request):
         account = user.account
     account_owner = account.owner if account else None
 
-    panel = 'goals'  # при добавлении цели всегда панель "Цели"
+    panel = 'goals'
 
     context = {
         'account': account,
@@ -1401,7 +1363,6 @@ def add_category(request):
         form.save()
         return redirect(next_url)
 
-    # Ошибка: возвращаемся на учёт, сохраняя фильтры из next_url
     if user.account_type == User.OWNER:
         account = ensure_owner_account(user)
     else:
@@ -1457,11 +1418,9 @@ def build_dashboard_context(
     if get_params is None:
         get_params = request.GET
 
-    # panel
     if panel is None:
         panel = get_params.get('panel', 'accounts')
 
-    # next_url (нужно для закрытия модалок без сохранения "edit")
     if next_url is None:
         q_next = get_params.copy()
         q_next.pop('edit', None)
@@ -1469,7 +1428,6 @@ def build_dashboard_context(
 
     account_owner = account.owner if account else None
 
-    # фильтры
     filter_users = []
     filter_containers = []
     filter_categories = []
@@ -1487,7 +1445,6 @@ def build_dashboard_context(
     filter_date_error = False
 
     def _parse_dmy(s: str):
-        # принимает ДД.ММ.ГГ или ДД.ММ.ГГГГ
         s = (s or '').strip()
         if not s:
             return None
@@ -1511,12 +1468,10 @@ def build_dashboard_context(
     operations = None
 
     if account is not None:
-        # варианты для фильтра
         filter_users = list(User.objects.filter(account=account).order_by('username'))
         filter_containers = list(MoneyContainer.objects.filter(account=account, is_active=True).order_by('name'))
         filter_categories = list(Category.objects.filter(parent__isnull=True).order_by('name'))
 
-        # период
         now = timezone.localtime()
         end_dt = timezone.now()
 
@@ -1525,13 +1480,10 @@ def build_dashboard_context(
         d_from = _parse_dmy(filter_date_from)
         d_to = _parse_dmy(filter_date_to)
 
-        # кастомный период: если есть from/to или range=custom
         custom_requested = (period_key == 'custom') or bool(filter_date_from or filter_date_to)
         if custom_requested:
             if d_from is None or d_to is None or d_from > d_to:
                 filter_date_error = True
-                # fallback на "текущий месяц", но period_key оставляем как есть (custom),
-                # чтобы UI показывал ошибку и не подсвечивал пресеты
                 first_day = now.date().replace(day=1)
                 start_dt = timezone.make_aware(
                     datetime.combine(first_day, time.min),
@@ -1565,7 +1517,6 @@ def build_dashboard_context(
             datetime__lte=end_dt,
         ).select_related('container', 'category', 'subcategory', 'user', 'goal')
 
-        # пользователи
         u_ids = get_params.getlist('u')
         try:
             u_ids_int = [int(x) for x in u_ids]
@@ -1575,7 +1526,6 @@ def build_dashboard_context(
             qs = qs.filter(user_id__in=u_ids_int)
             selected_users = set(u_ids_int)
 
-        # счета
         c_ids = get_params.getlist('c')
         try:
             c_ids_int = [int(x) for x in c_ids]
@@ -1585,7 +1535,6 @@ def build_dashboard_context(
             qs = qs.filter(container_id__in=c_ids_int)
             selected_containers = set(c_ids_int)
 
-        # категории
         cat_ids = get_params.getlist('cat')
         try:
             cat_ids_int = [int(x) for x in cat_ids]
@@ -1595,7 +1544,6 @@ def build_dashboard_context(
             qs = qs.filter(category_id__in=cat_ids_int)
             selected_categories = set(cat_ids_int)
 
-        # сумма от/до
         if amount_min:
             try:
                 qs = qs.filter(amount__gte=Decimal(amount_min.replace(',', '.')))
@@ -1609,7 +1557,6 @@ def build_dashboard_context(
 
         operations = qs
 
-    # формы по умолчанию
     if operation_form is None and account is not None:
         operation_form = OperationForm(account=account, user=user)
 

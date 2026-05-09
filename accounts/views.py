@@ -7,6 +7,9 @@ from maintabs.models import BudgetAccount
 from .models import User
 
 def register(request):
+    """
+    Регистрация пользователя и создание семейного счёта для владельца.
+    """
     if request.user.is_authenticated:
         return redirect('accounts:profile')
     if request.method == 'POST':

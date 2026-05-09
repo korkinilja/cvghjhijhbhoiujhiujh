@@ -32,9 +32,7 @@
                     </div>
                 {% endif %}
 
-                <!-- Форма 1: кастомный период ДД.ММ.ГГ - ДД.ММ.ГГ -->
                 <form method="get" action="{% url 'maintabs:dashboard' %}" id="rangeCustomForm">
-                    {# сохраняем текущие фильтры, кроме period-параметров #}
                     {% for key, values in request.GET.lists %}
                         {% if key != 'range' and key != 'from' and key != 'to' %}
                             {% for v in values %}

@@ -1,7 +1,6 @@
 from .models import Category
 
 DEFAULT_CATEGORIES = {
-    # (Название, тип, is_goal_category): [подкатегории...]
     ('Доход', Category.TYPE_INCOME, False): [
         'Зарплата',
         'Премия',
@@ -30,7 +29,6 @@ DEFAULT_CATEGORIES = {
         'Коммунальные услуги',
     ],
     ('Мобильная связь', Category.TYPE_EXPENSE, False): [
-        # без подкатегорий
     ],
     ('Интернет и ТВ', Category.TYPE_EXPENSE, False): [
         'Оплата связи и ТВ',
@@ -57,18 +55,14 @@ DEFAULT_CATEGORIES = {
         'Модификация',
     ],
     ('Сбережения и инвестиции', Category.TYPE_EXPENSE, False): [
-        # без подкатегорий
     ],
     ('Техника', Category.TYPE_EXPENSE, False): [
         'Личные гаджеты',
         'Бытовая техника',
     ],
     ('Хобби и интересы', Category.TYPE_EXPENSE, False): [
-        # подкатегории можно будет добавить позже
     ],
-    # Специальная категория "На цели"
     ('На цели', Category.TYPE_EXPENSE, True): [
-        # без подкатегорий, работает в связке с Goal
     ],
 }
 

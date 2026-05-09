@@ -1,7 +1,7 @@
 body {
     margin: 0;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #1f2b24; /* базовый текст (на auth/main перекрывается панелями) */
+    color: #1f2b24;
 }
 
 a {
@@ -23,16 +23,14 @@ a:hover {
     color: inherit;
 }
 
-/* Общий фон для auth + main страниц */
+/*Общий фон*/
 body.auth-page,
 body.main-page {
     background: #0f1713 url("../img/money_pattern.jpg") no-repeat center center fixed;
     background-size: cover;
 }
 
-/* ==========================
-   Кнопки (общие)
-   ========================== */
+/*Кнопки*/
 
 .btn-primary {
     display: inline-block;
@@ -76,7 +74,7 @@ body.main-page {
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    text-decoration: none; /* как у тебя было для <a class="btn-danger"> */
+    text-decoration: none;
 }
 
 .btn-danger:hover {
@@ -86,11 +84,6 @@ body.main-page {
 button {
     font: inherit;
 }
-
-/* ==========================
-   «Стеклянные панели» (auth-card / sidebar / tabs / main-card / modal-card)
-   Убираем дублирование одинаковых свойств
-   ========================== */
 
 .auth-card,
 .sidebar,
@@ -102,14 +95,12 @@ button {
     background-color: rgba(12, 28, 20, var(--panel-alpha, 0.96));
 }
 
-/* разные прозрачности — как было */
 .auth-card { --panel-alpha: 0.92; }
 .sidebar   { --panel-alpha: 0.95; }
 .main-tabs { --panel-alpha: 0.96; }
 .main-card { --panel-alpha: 0.96; }
 .modal-card{ --panel-alpha: 0.98; }
 
-/* тени — как было */
 .auth-card {
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
 }
@@ -118,12 +109,10 @@ button {
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
 }
 
-/* ==========================
-   Формы (общие)
-   ========================== */
+/*Формы*/
 
 .form-group {
-    margin-bottom: 12px; /* maintabs-логика; на auth переопределим */
+    margin-bottom: 12px;
 }
 
 .field-label,
@@ -134,7 +123,7 @@ button {
     font-weight: 500;
 }
 
-/* Поля ввода (кроме radio/checkbox) */
+/* Поля ввода */
 .form-group input[type="text"],
 .form-group input[type="password"],
 .form-group input[type="email"],
@@ -166,7 +155,6 @@ button {
     box-shadow: 0 0 0 1px rgba(72, 162, 103, 0.5);
 }
 
-/* RadioSelect / CheckboxSelectMultiple списки */
 .form-group ul {
     list-style: none;
     margin: 4px 0 0;
@@ -177,13 +165,11 @@ button {
     margin: 0 0 4px;
 }
 
-/* Блок действий формы */
 .form-actions {
     margin-top: 20px;
     text-align: center;
 }
 
-/* Ошибки/успехи (общие; на auth цвет ошибки чуть другой — переопределим) */
 .error-text {
     margin-top: 4px;
     font-size: 13px;
