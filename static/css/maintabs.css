@@ -1,7 +1,3 @@
-/* ==========================
-   Основные страницы приложения (maintabs)
-   ========================== */
-
 body.main-page {
     height: 100vh;
     margin: 0;
@@ -10,14 +6,11 @@ body.main-page {
     overflow: hidden; /* страница в целом не скроллится */
 }
 
-/* На основных страницах убираем верхнюю полоску из base.html */
 body.main-page .top-bar {
     display: none;
 }
 
-/* ==========================
-   Layout: sidebar + main
-   ========================== */
+/*Layout*/
 
 .app-layout {
     flex: 1;
@@ -30,7 +23,7 @@ body.main-page .top-bar {
     min-height: 0;
 }
 
-/* Левая панель (фон/цвет/радиус теперь в base.css через .sidebar) */
+/*Левая панель*/
 .sidebar {
     display: flex;
     flex-direction: column;
@@ -160,7 +153,8 @@ body.main-page .top-bar {
     vertical-align: middle;
 }
 
-/* Удаление карточек в сайдбаре */
+/*Удаление карточек*/
+
 .card-delete-form {
     position: absolute;
     right: 8px;
@@ -199,9 +193,7 @@ body.main-page .top-bar {
     margin-top: 6px;
 }
 
-/* ==========================
-   Правая часть
-   ========================== */
+/*Правая часть*/
 
 .main-area {
     display: flex;
@@ -211,7 +203,7 @@ body.main-page .top-bar {
     min-height: 0;
 }
 
-/* Tabs сверху (фон/радиус/цвет теперь в base.css через .main-tabs) */
+/*Вкладки сверху*/
 .main-tabs {
     display: flex;
     align-items: center;
@@ -260,14 +252,13 @@ body.main-page .top-bar {
     margin-right: 8px;
 }
 
-/* Основной контент */
 .main-content {
     flex: 1;
     overflow: auto;
     min-height: 0;
 }
 
-/* Основная карточка (фон/радиус/цвет теперь в base.css через .main-card) */
+/*Основная карточка*/
 .main-card {
     padding: 20px 24px;
     box-sizing: border-box;
@@ -285,15 +276,14 @@ body.main-page .top-bar {
     margin-bottom: 12px;
 }
 
-/* ВАЖНО: здесь и flex, и position:relative (раньше было в двух местах) */
 .main-card-header-actions {
     display: flex;
     align-items: center;
     gap: 12px;
-    position: relative; /* для popover-ов */
+    position: relative;
 }
 
-/* Белая рамка-блок как у тебя */
+
 .notif-block {
     border: 2px solid #ffffff;
     border-radius: 18px;
@@ -301,7 +291,7 @@ body.main-page .top-bar {
     margin: 16px 0;
 }
 
-/* Django messages */
+
 .django-messages {
     list-style: none;
     padding: 0;
@@ -318,9 +308,7 @@ body.main-page .top-bar {
 .message-warning { color: #ffb6b6; }
 .message-info { color: #c7e0d3; }
 
-/* ==========================
-   Уведомления / join requests
-   ========================== */
+/*Уведомления*/
 
 .join-requests-list,
 .notifications-list {
@@ -358,9 +346,7 @@ body.main-page .top-bar {
     border-bottom: 1px solid #24362a;
 }
 
-/* ==========================
-   Модалки
-   ========================== */
+/*Модалки*/
 
 .modal {
     position: fixed;
@@ -380,7 +366,6 @@ body.main-page .top-bar {
     display: flex !important;
 }
 
-/* modal-card: фон/радиус/цвет/тень теперь в base.css через .modal-card */
 .modal-card {
     padding: 24px 28px;
     max-width: 420px;
@@ -404,17 +389,14 @@ body.main-page .top-bar {
     cursor: pointer;
 }
 
-/* В модалках кнопки рядом — как раньше (учитывая, что у btn-danger убрали margin-left) */
 .modal-card .form-actions {
     margin-top: 24px;
     display: flex;
     justify-content: center;
-    gap: 16px; /* было 8 + margin-left(8) у btn-danger => визуально то же */
+    gap: 16px;
 }
 
-/* ==========================
-   Кнопки-иконки
-   ========================== */
+/* Кнопки иконки*/
 
 .circle-action-btn {
     display: inline-flex;
@@ -459,9 +441,7 @@ body.main-page .top-bar {
     text-decoration: underline;
 }
 
-/* ==========================
-   Операции (Учёт)
-   ========================== */
+/*Учёт, Операции*/
 
 .operations-list {
     list-style: none;
@@ -531,7 +511,7 @@ body.main-page .top-bar {
     color: #e9f5ee;
 }
 
-/* кнопка редактирования операции */
+/*Кнопка редактирования операции*/
 .operation-edit-form {
     position: absolute;
     top: 4px;
@@ -562,9 +542,7 @@ body.main-page .top-bar {
     display: block;
 }
 
-/* ==========================
-   Формы в модалках (специфика)
-   ========================== */
+/*Формы в модалках*/
 
 .form-grid {
     display: grid;
@@ -631,10 +609,7 @@ body.main-page .top-bar {
     z-index: 1100;
 }
 
-/* ==========================
-   Popover фильтра и периода (Учёт + План)
-   (убраны дубли — оставлена финальная версия)
-   ========================== */
+/*Popover фильтра и периода*/
 
 .filter-popover {
     position: absolute;
@@ -704,7 +679,6 @@ body.main-page .top-bar {
     color: #e9f5ee;
 }
 
-/* было gap 10 + margin-left у btn-danger => делаем эквивалентно */
 .filter-actions {
     display: flex;
     justify-content: center;
@@ -796,9 +770,7 @@ body.main-page .top-bar {
     color: #f5fbf7;
 }
 
-/* ==========================
-   План
-   ========================== */
+/*План*/
 
 .plans-list {
     list-style: none;
@@ -832,10 +804,9 @@ body.main-page .top-bar {
     color: #e9f5ee;
 }
 
-/* ВАЖНО: бейдж важности на плане — как в Учёте, но крупнее */
 .plan-importance-badge {
-    font-size: 14px;     /* было 11px в учёте */
-    padding: 2px 10px;   /* чуть «массивнее» */
+    font-size: 14px;
+    padding: 2px 10px;
     font-weight: 700;
 }
 
@@ -859,7 +830,7 @@ body.main-page .top-bar {
     position: relative;
 }
 
-/* красный кружок возле последней буквы */
+/* Красный кружок возле последней буквы */
 .notif-dot {
     position: absolute;
     top: 2px;
@@ -869,4 +840,85 @@ body.main-page .top-bar {
     border-radius: 50%;
     background: #ff4747;
     box-shadow: 0 0 4px rgba(255, 71, 71, 0.8);
+}
+
+/* Отчёты */
+
+.reports-summary {
+    margin-top: 10px;
+    margin-bottom: 18px;
+    color: #c7e0d3;
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.reports-summary-line {
+    margin-bottom: 6px;
+}
+
+.reports-charts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+}
+
+.reports-chart-block {
+    border: 2px solid #ffffff;
+    border-radius: 18px;
+    padding: 12px 16px;
+}
+
+.reports-chart-title {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+}
+
+.reports-chart-row {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+    align-items: center;
+}
+
+.reports-canvas {
+    width: 320px !important;
+    height: 320px !important;
+}
+
+.reports-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.reports-legend-item {
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #24362a;
+}
+
+.reports-legend-item:last-child {
+    border-bottom: none;
+}
+
+.reports-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.reports-legend-name {
+    color: #e9f5ee;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.reports-legend-val {
+    color: #c7e0d3;
+    font-size: 13px;
+    text-align: right;
 }

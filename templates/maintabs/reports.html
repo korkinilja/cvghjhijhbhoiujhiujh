@@ -1,10 +1,277 @@
 {% extends "maintabs/base_maintabs.html" %}
+{% load static %}
+{% load money_filters %}
 
 {% block title %}Отчёты{% endblock %}
 
 {% block page_content %}
 <div class="main-card">
-    <h1>Отчёты</h1>
-    <p>Здесь будут отчёты по расходам и доходам.</p>
+    <div class="main-card-header">
+        <h1>Отчёты</h1>
+
+        <div class="main-card-header-actions">
+            <button type="button" class="circle-action-btn" id="reportsUserToggle" title="Пользователь">
+                <img src="{% static 'img/person-icon.svg' %}" alt="Пользователь">
+            </button>
+
+            <div class="filter-popover" id="reportsUserPopover" style="width: 260px;">
+                <form method="get" action="{% url 'maintabs:reports' %}">
+                    {% if mode == 'month' %}
+                        <input type="hidden" name="m" value="{{ selected_month_str }}">
+                    {% else %}
+                        <input type="hidden" name="fromm" value="{{ period_from_str }}">
+                        <input type="hidden" name="tom" value="{{ period_to_str }}">
+                    {% endif %}
+
+                    <div class="filter-title" style="margin-bottom: 10px;">Пользователь</div>
+
+                    <label class="filter-item">
+                        <input type="radio" name="who" value="all" {% if not selected_user %}checked{% endif %}>
+                        Все
+                    </label>
+
+                    {% for u in users_list %}
+                        <label class="filter-item">
+                            <input type="radio" name="who" value="{{ u.id }}"
+                                   {% if selected_user and selected_user.id == u.id %}checked{% endif %}>
+                            {{ u.username }}
+                        </label>
+                    {% endfor %}
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn-primary">OK</button>
+                    </div>
+                </form>
+            </div>
+
+            <button type="button" class="circle-action-btn" id="reportsRangeToggle" title="Период">
+                <img src="{% static 'img/calendar-icon.svg' %}" alt="Период">
+            </button>
+
+            <div class="range-popover{% if report_date_error %} is-open{% endif %}" id="reportsRangePopover">
+                {% if report_date_error %}
+                    <div class="error-text" style="margin-bottom: 8px;">Некорректные даты</div>
+                {% endif %}
+
+                <!-- форма 1: месяц -->
+                <form method="get" action="{% url 'maintabs:reports' %}" id="reportsMonthForm">
+                    <input type="hidden" name="who" value="{% if selected_user %}{{ selected_user.id }}{% else %}all{% endif %}">
+                    <div class="range-title">Отобразить месяц:</div>
+                    <div class="range-dates" style="grid-template-columns: 1fr auto;">
+                        <input type="text" name="m" placeholder="ММ.ГГ" value="{{ selected_month_str }}"
+                               maxlength="5" inputmode="numeric" autocomplete="off">
+                        <button type="submit" class="btn-primary range-ok">OK</button>
+                    </div>
+                </form>
+            
+                <!-- форма 2: период -->
+                <form method="get" action="{% url 'maintabs:reports' %}" id="reportsPeriodForm">
+                    <input type="hidden" name="who" value="{% if selected_user %}{{ selected_user.id }}{% else %}all{% endif %}">
+                    <div class="range-title">Отобразить период:</div>
+                    <div class="range-dates">
+                        <input type="text" name="fromm" placeholder="ММ.ГГ" value="{{ period_from_str }}"
+                               maxlength="5" inputmode="numeric" autocomplete="off">
+                        <span class="range-dash">-</span>
+                        <input type="text" name="tom" placeholder="ММ.ГГ" value="{{ period_to_str }}"
+                               maxlength="5" inputmode="numeric" autocomplete="off">
+                        <button type="submit" class="btn-primary range-ok">OK</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="reports-summary">
+        <div class="reports-summary-line">
+            Пользователь: <strong>{{ selected_user_label }}</strong>
+        </div>
+
+        {% if mode == 'month' %}
+            <div class="reports-summary-line">
+                Период: <strong>{{ selected_month_str }}</strong>
+            </div>
+        {% else %}
+            <div class="reports-summary-line">
+                Период: <strong>{{ period_from_str }} - {{ period_to_str }}</strong>
+            </div>
+        {% endif %}
+
+        <div class="reports-summary-line">
+            Всего расходов: <strong>{{ total_expense|ru_money }}</strong>
+        </div>
+
+        <div class="reports-summary-line">
+            {% if plans_total == 0 %}
+                Планов на выбранный период нет.
+            {% else %}
+                Выполнено планов: <strong>{{ plans_done_percent }}%</strong> ({{ plans_done }} из {{ plans_total }})
+            {% endif %}
+        </div>
+
+        {% if compare_available %}
+            <div class="reports-summary-line">
+                {% if delta_total_pct is not None %}
+                    По сравнению с прошлым месяцем: всего расходов
+                    <strong>{% if delta_total_pct >= 0 %}+{% endif %}{{ delta_total_pct|floatformat:0 }}%</strong>
+                {% else %}
+                    Всего расходов: нет данных для сравнения с прошлым месяцем
+                {% endif %}
+            </div>
+
+            <div class="reports-summary-line">
+                {% if delta_necessary_pct is not None %}
+                    По сравнению с прошлым месяцем: необходимые расходы
+                    <strong>{% if delta_necessary_pct >= 0 %}+{% endif %}{{ delta_necessary_pct|floatformat:0 }}%</strong>
+                {% else %}
+                    Необходимые расходы: нет данных для сравнения с прошлым месяцем
+                {% endif %}
+            </div>
+            <div class="reports-summary-line">
+                {% if delta_free_pct is not None %}
+                    По сравнению с прошлым месяцем: свободные расходы
+                    <strong>{% if delta_free_pct >= 0 %}+{% endif %}{{ delta_free_pct|floatformat:0 }}%</strong>
+                {% else %}
+                    Свободные расходы: нет данных для сравнения с прошлым месяцем
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="reports-charts">
+        <div class="reports-chart-block">
+            <h2 class="reports-chart-title">Расходы по категориям</h2>
+
+            {% if cat_legend %}
+                <div class="reports-chart-row">
+                    <canvas id="catPie" class="reports-canvas"></canvas>
+
+                    <ul class="reports-legend">
+                        {% for it in cat_legend %}
+                            <li class="reports-legend-item">
+                                <span class="reports-legend-dot" style="background: {{ it.color }};"></span>
+                                <span class="reports-legend-name">{{ it.name }}</span>
+                                <span class="reports-legend-val">
+                                    {{ it.amount|ru_money }} ({{ it.percent|floatformat:0 }}%)
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <p>Нет расходов за выбранный период.</p>
+            {% endif %}
+        </div>
+
+        <div class="reports-chart-block">
+            <h2 class="reports-chart-title">Необходимые / свободные</h2>
+
+            {% if imp_legend %}
+                <div class="reports-chart-row">
+                    <canvas id="impPie" class="reports-canvas"></canvas>
+
+                    <ul class="reports-legend">
+                        {% for it in imp_legend %}
+                            <li class="reports-legend-item">
+                                <span class="reports-legend-dot" style="background: {{ it.color }};"></span>
+                                <span class="reports-legend-name">{{ it.name }}</span>
+                                <span class="reports-legend-val">
+                                    {{ it.amount|ru_money }} ({{ it.percent|floatformat:0 }}%)
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <p>Нет расходов за выбранный период.</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var ut = document.getElementById('reportsUserToggle');
+    var up = document.getElementById('reportsUserPopover');
+
+    var rt = document.getElementById('reportsRangeToggle');
+    var rp = document.getElementById('reportsRangePopover');
+
+    function closeAll() {
+        if (up) up.classList.remove('is-open');
+        if (rp) rp.classList.remove('is-open');
+    }
+
+    if (ut && up) {
+        ut.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); closeAll(); up.classList.toggle('is-open'); });
+        up.addEventListener('click', function(e){ e.stopPropagation(); });
+    }
+
+    if (rt && rp) {
+        rt.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); closeAll(); rp.classList.toggle('is-open'); });
+        rp.addEventListener('click', function(e){ e.stopPropagation(); });
+    }
+
+    document.addEventListener('click', closeAll);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAll(); });
+
+    var mInp = document.querySelector('#reportsRangePopover input[name="m"]');
+    var fInp = document.querySelector('#reportsRangePopover input[name="fromm"]');
+    var tInp = document.querySelector('#reportsRangePopover input[name="tom"]');
+
+    attachFixedMMGGMask(mInp);
+    attachFixedMMGGMask(fInp);
+    attachFixedMMGGMask(tInp);
+
+    clearMMGGTemplateOnSubmit(document.getElementById('reportsMonthForm'), [mInp]);
+    clearMMGGTemplateOnSubmit(document.getElementById('reportsPeriodForm'), [fInp, tInp]);
+
+    var catLabels = {{ cat_labels_json|safe }};
+    var catValues = {{ cat_values_json|safe }};
+    var catColors = {{ cat_colors_json|safe }};
+
+    var catCanvas = document.getElementById('catPie');
+    if (catCanvas && catLabels.length) {
+        new Chart(catCanvas, {
+            type: 'pie',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catValues,
+                    backgroundColor: catColors,
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    var impLabels = {{ imp_labels_json|safe }};
+    var impValues = {{ imp_values_json|safe }};
+    var impColors = {{ imp_colors_json|safe }};
+
+    var impCanvas = document.getElementById('impPie');
+    if (impCanvas && impLabels.length) {
+        new Chart(impCanvas, {
+            type: 'pie',
+            data: {
+                labels: impLabels,
+                datasets: [{
+                    data: impValues,
+                    backgroundColor: impColors,
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
